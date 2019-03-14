@@ -59,10 +59,10 @@ LOCAL_EXPORT_SHARED_LIBRARY_HEADERS := \
 
 LOCAL_MODULE_TAGS := tests
 
-LOCAL_MODULE:= libkdisplay
+LOCAL_MODULE:= libcarthage
 
 LOCAL_C_INCLUDES += system/core/libsuspend/include \
-#	$(call include-path-for, opengl-tests-includes)
+
 LOCAL_CFLAGS := \
     -DANDROID_VERSION_MAJOR=$(ANDROID_VERSION_MAJOR) \
     -DANDROID_VERSION_MINOR=$(ANDROID_VERSION_MINOR) \
@@ -71,8 +71,5 @@ LOCAL_CFLAGS := \
 LOCAL_CFLAGS += -Wno-unused-parameter -DGL_GLEXT_PROTOTYPES -UNDEBUG -DQCOM_BSP=1 -DQTI_BSP=1
 LOCAL_CFLAGS += -DHAS_GRALLOC1_HEADER=1
 
-$(info $(LOCAL_CFLAGS))
-
 include $(BUILD_SHARED_LIBRARY)
-
 
