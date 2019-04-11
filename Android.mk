@@ -12,9 +12,7 @@ LOCAL_SRC_FILES:= \
     GonkDisplayP.cpp \
     FramebufferSurface.cpp \
     NativeFramebufferDevice.cpp \
-    HWC2.cpp \
     HWComposerSurface.cpp \
-    ComposerHal.cpp \
     NativeGralloc.c \
     GrallocUsageConversion.cpp \
     hwcomposer_window.cpp \
@@ -43,19 +41,34 @@ LOCAL_SHARED_LIBRARIES := \
     libui \
     libgui \
     libpowermanager \
-    libvulkan \
     libsync \
     libprotobuf-cpp-lite \
     libbase \
-    android.hardware.power@1.0 \
-    libnativewindow
+    android.hardware.power@1.0
 
+
+ifeq ($(PLATFORM_SDK_VERSION),27)
+    LOCAL_SRC_FILES += oreo/HWC2.cpp
+    LOCAL_SRC_FILES += oreo/ComposerHal.cpp
+    LOCAL_SHARED_LIBRARIES += libvulkan
+    LOCAL_SHARED_LIBRARIES += libnativewindow
 LOCAL_EXPORT_SHARED_LIBRARY_HEADERS := \
     android.hardware.graphics.allocator@2.0 \
     android.hardware.graphics.composer@2.1 \
     libhidlbase \
     libhidltransport \
     libhwbinder
+else ifeq ($(PLATFORM_SDK_VERSION),28)
+    LOCAL_SRC_FILES += pie/HWC2.cpp
+    LOCAL_SRC_FILES += pie/ComposerHal.cpp
+    LOCAL_SHARED_LIBRARIES += android.hardware.graphics.composer@2.2
+    LOCAL_HEADER_LIBRARIES := \
+        android.hardware.graphics.composer@2.1-command-buffer \
+        android.hardware.graphics.composer@2.2-command-buffer
+else
+    LOCAL_SRC_FILES += oreo/HWC2.cpp
+    LOCAL_SRC_FILES += oreo/ComposerHal.cpp
+endif
 
 LOCAL_MODULE_TAGS := tests
 
@@ -69,6 +82,7 @@ LOCAL_CFLAGS := \
     -DANDROID_VERSION=$(PLATFORM_SDK_VERSION)
 
 LOCAL_CFLAGS += -Wno-unused-parameter -DGL_GLEXT_PROTOTYPES -UNDEBUG -DQCOM_BSP=1 -DQTI_BSP=1
+LOCAL_CFLAGS += -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -Wno-unused-result
 LOCAL_CFLAGS += -DHAS_GRALLOC1_HEADER=1
 
 include $(BUILD_SHARED_LIBRARY)

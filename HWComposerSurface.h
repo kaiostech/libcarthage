@@ -18,7 +18,11 @@
 #define ANDROID_SF_HWCOMPOSER_H
 
 #include "hwcomposer_window.h"
-#include "HWC2.h"
+#if ANDROID_VERSION == 27
+#include "oreo/HWC2.h"
+#elif ANDROID_VERSION >= 28
+#include "pie/HWC2.h"
+#endif
 #include <ui/GraphicBuffer.h>
 #include <ui/Fence.h>
 

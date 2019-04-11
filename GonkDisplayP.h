@@ -25,8 +25,13 @@
 #include "utils/RefBase.h"
 #include <gui/BufferQueue.h>
 #include "NativeGralloc.h"
-#include "HWC2.h"
-#include "ComposerHal.h"
+#if ANDROID_VERSION == 27
+#include "oreo/HWC2.h"
+#include "oreo/ComposerHal.h"
+#elif ANDROID_VERSION >= 28
+#include "pie/HWC2.h"
+#include "pie/ComposerHal.h"
+#endif
 #include <hwcomposer_window.h>
 #include "HWComposerSurface.h"
 
