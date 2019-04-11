@@ -51,8 +51,12 @@ class HWComposerCallback : public HWC2::ComposerCallback
 		void onVsyncReceived(int32_t sequenceId, hwc2_display_t display,
 							int64_t timestamp) override;
 		void onHotplugReceived(int32_t sequenceId, hwc2_display_t display,
+#if ANDROID_VERSION == 27
 							HWC2::Connection connection,
 							bool primaryDisplay) override;
+#elif ANDROID_VERSION >= 28
+							HWC2::Connection connection) override;
+#endif
 		void onRefreshReceived(int32_t sequenceId, hwc2_display_t display) override;
 };
 
@@ -70,6 +74,7 @@ void HWComposerCallback::onVsyncReceived(int32_t sequenceId, hwc2_display_t disp
 }
 
 void HWComposerCallback::onHotplugReceived(int32_t sequenceId, hwc2_display_t display,
+#if ANDROID_VERSION == 27
 							HWC2::Connection connection,
 							bool primaryDisplay) 
 {
@@ -77,7 +82,14 @@ void HWComposerCallback::onHotplugReceived(int32_t sequenceId, hwc2_display_t di
 		sequenceId, display,
 		connection == HWC2::Connection::Connected ?
 				"connected" : "disconnected", primaryDisplay);
-
+#elif ANDROID_VERSION >= 28
+							HWC2::Connection connection)
+{
+	ALOGI("onHotplugReceived(%d, %" PRIu64 ", %s)",
+		sequenceId, display,
+		connection == HWC2::Connection::Connected ?
+				"connected" : "disconnected");
+#endif
 	{
 		std::lock_guard<std::mutex> lock(hotplugMutex);
 		hwcDevice->onHotplug(display, connection);
@@ -187,7 +199,7 @@ GonkDisplayP::GonkDisplayP()
                              mlayer);
 
 
-   /* hwcDisplay->createLayer(&mlayerBootAnim);
+    hwcDisplay->createLayer(&mlayerBootAnim);
 	mlayerBootAnim->setCompositionType(HWC2::Composition::Client);
 	mlayerBootAnim->setBlendMode(HWC2::BlendMode::None);
 	mlayerBootAnim->setSourceCrop(android::FloatRect(0.0f, 0.0f, config->getWidth(), config->getHeight()));
@@ -200,7 +212,7 @@ GonkDisplayP::GonkDisplayP()
                              config->getHeight(),
                              HAL_PIXEL_FORMAT_RGBA_8888, 
                              hwcDisplay, 
-                             mlayerBootAnim);*/
+                             mlayerBootAnim);
     
 }
 
