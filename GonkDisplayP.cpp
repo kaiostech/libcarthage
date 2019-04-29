@@ -173,9 +173,18 @@ GonkDisplayP::GonkDisplayP()
 	std::shared_ptr<const HWC2::Display::Config> config;
 	config = getActiveConfig(hwcDisplay, 0);
 
- 	ALOGI("width: %i height: %i\n", config->getWidth(), config->getHeight());
+	ALOGI("width: %i height: %i,dpi: %f\n", config->getWidth(), config->getHeight(),config->getDpiX());
 
-	
+	DisplayNativeData &dispData = mDispNativeData[(uint32_t)DisplayType::DISPLAY_PRIMARY];
+	if (config->getWidth() > 0) {
+		dispData.mWidth = config->getWidth();
+		dispData.mHeight = config->getHeight();
+		dispData.mXdpi = config->getDpiX();
+		/* The emulator actually reports RGBA_8888, but EGL doesn't return
+		* any matching configuration. We force RGBX here to fix it. */
+		dispData.mSurfaceformat = HAL_PIXEL_FORMAT_RGBX_8888;
+	}
+
 	hwcDisplay->createLayer(&mlayer);
 
 	android::Rect r = {0, 0, config->getWidth(), config->getHeight()};
