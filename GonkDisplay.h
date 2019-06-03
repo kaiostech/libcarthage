@@ -20,20 +20,8 @@
 #include <utils/StrongPointer.h>
 ///**#include "mozilla/Types.h"
 #include "DisplaySurface.h"
-#include "KPorting.h"
+#include "MozTypes.h"
 
-namespace android {
-///class DisplaySurface;
-///class IGraphicBufferProducer;
-
-
-///**namespace mozilla {
-
-typedef void * EGLDisplay;
-typedef void * EGLSurface;
-
-class GonkDisplay {
-public:
    /**
     * This enum is for types of display. DISPLAY_PRIMARY refers to the default
     * built-in display, DISPLAY_EXTERNAL refers to displays connected with
@@ -49,6 +37,18 @@ public:
         NUM_DISPLAY_TYPES
     };
 
+namespace android {
+///class DisplaySurface;
+///class IGraphicBufferProducer;
+
+
+///**namespace mozilla {
+
+typedef void * EGLDisplay;
+typedef void * EGLSurface;
+
+class GonkDisplay {
+public:
     struct NativeData {
         android::sp<ANativeWindow> mNativeWindow;
 #if ANDROID_VERSION >= 17
@@ -76,6 +76,8 @@ public:
         uint32_t mHeight;
     };
 
+    virtual ~GonkDisplay() {};
+
     virtual void SetEnabled(bool enabled) = 0;
 
     virtual void SetExtEnabled(bool enabled) = 0;
@@ -100,20 +102,21 @@ public:
     virtual void UpdateDispSurface(EGLDisplay dpy, EGLSurface sur) = 0;
 
     virtual NativeData GetNativeData(
-        GonkDisplay::DisplayType aDisplayType,
+        DisplayType aDisplayType,
         android::IGraphicBufferProducer* aSink = nullptr) = 0;
 
     virtual void NotifyBootAnimationStopped() = 0;
 
     virtual const DisplayNativeData& GetDispNativeData(
-        GonkDisplay::DisplayType aDisplayType) {
+        DisplayType aDisplayType) {
         return mDispNativeData[aDisplayType];
     }
+
 #ifdef ENABLE_TEE_SUI
     virtual int EnableSecureUI(bool enabled) = 0;
+
     virtual bool GetSecureUIState() = 0;
 #endif
-	virtual ~GonkDisplay(){};
 
     virtual int TryLockScreen() = 0;
 
@@ -125,7 +128,7 @@ protected:
 };
 
 extern "C" MOZ_EXPORT __attribute__ ((weak))
-GonkDisplay* GetGonkDisplay();
+GonkDisplay* GetGonkDisplayP();
 
 }
 #endif /* GONKDISPLAY_H */

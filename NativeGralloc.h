@@ -10,14 +10,15 @@ extern "C" {
 #include <hardware/gralloc1.h>
 #endif
 #include <hardware/gralloc.h>
-#include "KPorting.h"
 #include <cutils/log.h>
 #include <cutils/native_handle.h>
+#include "MozTypes.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
 #define LOG_TAG "gralloc"
 #endif
+
 void native_gralloc_deinitialize(void);
 void native_gralloc_initialize(int framebuffer);
 void native_gralloc_deinitialize(void);

@@ -63,7 +63,7 @@ public:
     bool Post(buffer_handle_t buf, int fence, DisplayType aDisplayType);
 
     virtual NativeData GetNativeData(
-        GonkDisplay::DisplayType aDisplayType,
+        DisplayType aDisplayType,
         android::IGraphicBufferProducer* aSink = nullptr);
 
     virtual void NotifyBootAnimationStopped();

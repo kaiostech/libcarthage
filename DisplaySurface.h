@@ -17,7 +17,6 @@
 #ifndef ANDROID_SF_DISPLAY_SURFACE_H
 #define ANDROID_SF_DISPLAY_SURFACE_H
 
-#include "KPorting.h"
 // Do not treat compiler warnings from ConsumerBase.h as errors since it's from
 // an external repository.
 #pragma GCC diagnostic push

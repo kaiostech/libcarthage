@@ -574,8 +574,8 @@ GonkDisplayP::PowerOnDisplay(int aDpy)
 }
 
 GonkDisplay::NativeData
-GonkDisplayP::GetNativeData(GonkDisplay::DisplayType aDisplayType,
-                             android::IGraphicBufferProducer* aSink)
+GonkDisplayP::GetNativeData(DisplayType aDisplayType,
+                            android::IGraphicBufferProducer* aSink)
 {
     NativeData data;
 
@@ -606,7 +606,7 @@ GonkDisplayP::GetNativeData(GonkDisplay::DisplayType aDisplayType,
 #pragma clang diagnostic ignored "-Wignored-attributes"
 __attribute__ ((visibility ("weak")))
 GonkDisplay*
-GetGonkDisplay()
+GetGonkDisplayP()
 {
     ALOGI("GetGonkDisplay \n");
     if (!sGonkDisplay)
