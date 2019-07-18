@@ -123,8 +123,34 @@ public:
     virtual void UnlockScreen() = 0;
 
     virtual android::sp<ANativeWindow> GetSurface() = 0;
+
+#if ANDROID_VERSION >= 26
+    typedef void (*GonkDisplayVsyncCBFun)
+            (int display, int64_t timestamp);
+    virtual void registerVsyncCallBack(GonkDisplayVsyncCBFun func) {
+        pVsyncCBFun = func;
+    }
+
+    virtual GonkDisplayVsyncCBFun getVsyncCallBack() {
+        return pVsyncCBFun;
+    }
+
+    typedef void (*GonkDisplayInvalidateCBFun) (void);
+    virtual void registerInvalidateCallBack(GonkDisplayInvalidateCBFun func) {
+        pInvalidateCBFun = func;
+    }
+
+    virtual GonkDisplayInvalidateCBFun getInvalidateCallBack() {
+        return pInvalidateCBFun;
+    }
+#endif
+
 protected:
     DisplayNativeData mDispNativeData[NUM_DISPLAY_TYPES];
+#if ANDROID_VERSION >= 26
+    GonkDisplayVsyncCBFun pVsyncCBFun = NULL;
+    GonkDisplayInvalidateCBFun pInvalidateCBFun = NULL;
+#endif
 };
 
 extern "C" MOZ_EXPORT __attribute__ ((weak))

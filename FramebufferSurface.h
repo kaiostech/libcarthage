@@ -57,7 +57,7 @@ public:
 private:
     virtual ~FramebufferSurface() { }; // this class cannot be overloaded
 
-#if ANDROID_VERSION >= 27
+#if ANDROID_VERSION >= 26
 
 #elif ANDROID_VERSION >= 22
     virtual void onFrameAvailable(const ::android::BufferItem &item);

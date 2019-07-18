@@ -25,12 +25,12 @@
 #include "utils/RefBase.h"
 #include <gui/BufferQueue.h>
 #include "NativeGralloc.h"
-#if ANDROID_VERSION == 27
-#include "oreo/HWC2.h"
-#include "oreo/ComposerHal.h"
-#elif ANDROID_VERSION >= 28
+#if ANDROID_VERSION >= 28
 #include "pie/HWC2.h"
 #include "pie/ComposerHal.h"
+#elif ANDROID_VERSION >= 26
+#include "oreo/HWC2.h"
+#include "oreo/ComposerHal.h"
 #endif
 #include <hwcomposer_window.h>
 #include "HWComposerSurface.h"
@@ -68,12 +68,6 @@ public:
 
     virtual void NotifyBootAnimationStopped();
 
-#ifdef ENABLE_TEE_SUI
-    virtual int EnableSecureUI(bool enabled);
-
-    virtual bool GetSecureUIState();
-#endif
-
     virtual int TryLockScreen();
 
     virtual void UnlockScreen();
@@ -93,7 +87,7 @@ private:
 
     int DoQueueBuffer(ANativeWindowBuffer* buf, DisplayType aDisplayType);
 
-    hwc_composer_device_1_t*  mHwc;
+    std::unique_ptr<HWC2::Device> mHwc;
     framebuffer_device_t*     mFBDevice;
     NativeFramebufferDevice*  mExtFBDevice;
     power_module_t*           mPowerModule;
@@ -110,9 +104,6 @@ private:
     OnEnabledCallbackType mEnabledCallback;
     bool mFBEnabled;
     bool mExtFBEnabled;
-#ifdef ENABLE_TEE_SUI
-    bool mStateSecureUI;
-#endif
     android::Mutex mPrimaryScreenLock;
 };
 

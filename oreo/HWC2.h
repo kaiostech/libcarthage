@@ -339,4 +339,23 @@ private:
 
 } // namespace HWC2
 
+#if 1 // TODO, FIXME: for the issue of sharedlibrary linking from gecko
+#ifdef HAVE_VISIBILITY_ATTRIBUTE
+    #define MOZ_EXPORT       __attribute__((visibility("default")))
+#elif defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+    #define MOZ_EXPORT      __global
+#else
+    #define MOZ_EXPORT /* nothing */
+#endif
+
+extern "C" MOZ_EXPORT __attribute__ ((weak))
+HWC2::Display* hwc2_getDisplayById(HWC2::Device *p, hwc2_display_t id);
+
+extern "C" MOZ_EXPORT __attribute__ ((weak))
+void hwc2_registerCallback(HWC2::Device *p, HWC2::ComposerCallback* callback, int32_t sequenceId);
+
+extern "C" MOZ_EXPORT __attribute__ ((weak))
+HWC2::Error hwc2_setVsyncEnabled(HWC2::Display *p, HWC2::Vsync enabled);
+#endif
+
 #endif // ANDROID_SF_HWC2_H

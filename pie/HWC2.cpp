@@ -966,3 +966,26 @@ Error Layer::setInfo(uint32_t type, uint32_t appId)
 }
 
 } // namespace HWC2
+
+#if 1 // TODO, FIXME: for the issue of sharedlibrary linking from gecko
+extern "C" MOZ_EXPORT __attribute__ ((weak))
+HWC2::Display* hwc2_getDisplayById(HWC2::Device *p, hwc2_display_t id) {
+    return p->getDisplayById(id);
+}
+
+extern "C" MOZ_EXPORT __attribute__ ((weak))
+void hwc2_registerCallback(HWC2::Device *p, HWC2::ComposerCallback* callback, int32_t sequenceId) {
+    return p->registerCallback(callback, sequenceId);
+}
+
+extern "C" MOZ_EXPORT __attribute__ ((weak))
+HWC2::Error hwc2_setVsyncEnabled(HWC2::Display *p, HWC2::Vsync enabled) {
+    return p->setVsyncEnabled(enabled);
+}
+
+extern "C" MOZ_EXPORT __attribute__ ((weak))
+void hwc2_onHotplug(HWC2::Device *p, hwc2_display_t displayId, HWC2::Connection connection) {
+    return p->onHotplug(displayId, connection);
+}
+#endif
+
