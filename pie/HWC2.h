@@ -25,8 +25,8 @@
 
 #include <gui/HdrMetadata.h>
 #include <math/mat4.h>
-#include <ui/GraphicTypes.h>
-#include <ui/HdrCapabilities.h>
+#include "ui/GraphicTypes.h"
+#include "ui/HdrCapabilities.h"
 #include <utils/Log.h>
 #include <utils/StrongPointer.h>
 #include <utils/Timers.h>

@@ -150,9 +150,9 @@ GonkDisplayP::GonkDisplayP()
 	std::unique_lock<std::mutex> lock(hotplugMutex);
 	HWC2::Display *hwcDisplay;
 #if ANDROID_EMULATOR
-    while (!(hwcDisplay = mHwc->getDisplayById(1))) {
+    while (!(hwcDisplay = mHwc->getDisplayById(EMULATOR_DISPLAY_PRIMARY))) {
 #else
-	while (!(hwcDisplay = mHwc->getDisplayById(0))) {
+	while (!(hwcDisplay = mHwc->getDisplayById(HWC_DISPLAY_PRIMARY))) {
 #endif
 		/* Wait at most 5s for hotplug events */
 		hotplugCv.wait_for(lock, std::chrono::seconds(5));
@@ -267,7 +267,12 @@ GonkDisplayP::SetEnabled(bool enabled)
 
     if (mHwc) {
         HWC2::PowerMode mode = (enabled ? HWC2::PowerMode::On : HWC2::PowerMode::Off);
+#if ANDROID_EMULATOR
+        HWC2::Display *hwcDisplay = mHwc->getDisplayById(EMULATOR_DISPLAY_PRIMARY);
+#else
         HWC2::Display *hwcDisplay = mHwc->getDisplayById(HWC_DISPLAY_PRIMARY);
+#endif
+
         auto error = hwcDisplay->setPowerMode(mode);
         if (error != HWC2::Error::None) {
             ALOGE("setPowerMode: Unable to set power mode %s for "
