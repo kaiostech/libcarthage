@@ -68,8 +68,8 @@ HWComposerCallback::HWComposerCallback(HWC2::Device* device)
 void HWComposerCallback::onVsyncReceived(int32_t sequenceId, hwc2_display_t display,
                                                        int64_t timestamp)
 {
-    ALOGI("onVsyncReceived(%d, %" PRIu64 ", %" PRId64 ")",
-            sequenceId, display,timestamp);
+    //ALOGI("onVsyncReceived(%d, %" PRIu64 ", %" PRId64 ")",
+    //        sequenceId, display,timestamp);
 
     GonkDisplayVsyncCBFun func = GetGonkDisplayP()->getVsyncCallBack();
     if (func) {

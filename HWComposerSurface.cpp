@@ -112,8 +112,6 @@ void HWComposerSurface::present(HWComposerNativeWindowBuffer *buffer)
        setFenceBufferFd(buffer, releaseFences[layer]->dup());
     }
 
-	if (lastPresentFence.get())
-		lastPresentFence->wait(android::Fence::TIMEOUT_NEVER);
 } 
 
 
