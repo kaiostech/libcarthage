@@ -9,6 +9,8 @@
     #define MOZ_EXPORT /* nothing */
 #endif
 
+#define EMULATOR_DISPLAY_PRIMARY 1
+
 #ifdef DEBUG
 #  define MOZ_ASSERT(e...) __android_log_assert(e, "TAG", #e)
 #else

@@ -35,7 +35,6 @@
 #include <hwcomposer_window.h>
 #include "HWComposerSurface.h"
 
-#define EMULATOR_DISPLAY_PRIMARY 1
 
 namespace android {
 

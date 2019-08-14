@@ -37,6 +37,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "MozTypes.h"
+
 namespace android {
     class Fence;
     class FloatRect;
