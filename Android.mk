@@ -85,5 +85,10 @@ LOCAL_CFLAGS += -Wno-unused-parameter -DGL_GLEXT_PROTOTYPES -UNDEBUG -DQCOM_BSP=
 LOCAL_CFLAGS += -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -Wno-unused-result
 LOCAL_CFLAGS += -DHAS_GRALLOC1_HEADER=1
 
+# For emulator
+ifeq ($(TARGET_PRODUCT), aosp_arm)
+    LOCAL_CFLAGS += -DANDROID_EMULATOR
+endif
+
 include $(BUILD_SHARED_LIBRARY)
 
