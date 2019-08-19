@@ -208,6 +208,11 @@ void Device::onHotplug(hwc2_display_t displayId, Connection connection) {
 // Other Device methods
 
 Display* Device::getDisplayById(hwc2_display_t id) {
+#if ANDROID_EMULATOR
+    if (id == HWC_DISPLAY_PRIMARY) {
+        id = EMULATOR_DISPLAY_PRIMARY;
+    }
+#endif
     auto iter = mDisplays.find(id);
     return iter == mDisplays.end() ? nullptr : iter->second.get();
 }
