@@ -65,6 +65,26 @@ else ifeq ($(PLATFORM_SDK_VERSION),28)
     LOCAL_HEADER_LIBRARIES := \
         android.hardware.graphics.composer@2.1-command-buffer \
         android.hardware.graphics.composer@2.2-command-buffer
+else ifeq ($(PLATFORM_SDK_VERSION),29)
+    LOCAL_SRC_FILES += q/HWC2.cpp q/ComposerHal.cpp
+    LOCAL_SHARED_LIBRARIES += \
+        libnativewindow \
+        android.hardware.graphics.allocator@3.0 \
+        android.hardware.graphics.composer@2.2 \
+        android.hardware.graphics.composer@2.3
+    LOCAL_HEADER_LIBRARIES := \
+        android.hardware.graphics.composer@2.1-command-buffer \
+        android.hardware.graphics.composer@2.2-command-buffer \
+        android.hardware.graphics.composer@2.3-command-buffer
+    LOCAL_EXPORT_SHARED_LIBRARY_HEADERS := \
+        libhidlbase \
+        libhidltransport \
+        libhwbinder \
+        android.hardware.graphics.allocator@2.0 \
+        android.hardware.graphics.allocator@3.0 \
+        android.hardware.graphics.composer@2.1 \
+        android.hardware.graphics.composer@2.2 \
+        android.hardware.graphics.composer@2.3
 else
     LOCAL_SRC_FILES += oreo/HWC2.cpp
     LOCAL_SRC_FILES += oreo/ComposerHal.cpp

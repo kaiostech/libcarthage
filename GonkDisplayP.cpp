@@ -86,7 +86,7 @@ void HWComposerCallback::onHotplugReceived(int32_t sequenceId, hwc2_display_t di
 {
     {
         std::lock_guard<std::mutex> lock(hotplugMutex);
-        ALOGE("HWComposerCallback::onHotplugReceived %d %llu %d", sequenceId, display, (uint32_t)connection);
+        ALOGE("HWComposerCallback::onHotplugReceived %d %llu %d", sequenceId, (unsigned long long)display, (uint32_t)connection);
         hwcDevice->onHotplug(display, connection);
     }
 
@@ -139,7 +139,7 @@ GonkDisplayP::GonkDisplayP()
     , mExtFBEnabled(true) // Initial value should sync with hal::GetExtScreenEnabled()
 {
 #if ANDROID_VERSION >= 28 /* Android P and later */
-    std::string serviceName = "GonkDisplay";
+    std::string serviceName = "default";
     mHwc = std::make_unique<HWC2::Device>(std::make_unique<android::Hwc2::impl::Composer>(serviceName));
 #else
     mHwc = std::make_unique<HWC2::Device>(false);

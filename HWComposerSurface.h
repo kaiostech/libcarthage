@@ -20,8 +20,10 @@
 #include "hwcomposer_window.h"
 #if ANDROID_VERSION == 27
 #include "oreo/HWC2.h"
-#elif ANDROID_VERSION >= 28
+#elif ANDROID_VERSION == 28
 #include "pie/HWC2.h"
+#elif ANDROID_VERSION >= 29
+#include "q/HWC2.h"
 #endif
 #include <ui/GraphicBuffer.h>
 #include <ui/Fence.h>

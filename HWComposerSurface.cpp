@@ -30,9 +30,12 @@
 #if ANDROID_VERSION == 27
 #include "oreo/HWC2.h"
 #include "oreo/ComposerHal.h"
-#elif ANDROID_VERSION >= 28
+#elif ANDROID_VERSION == 28
 #include "pie/HWC2.h"
 #include "pie/ComposerHal.h"
+#elif ANDROID_VERSION >= 29
+#include "q/HWC2.h"
+#include "q/ComposerHal.h"
 #endif
 
 #include <hwcomposer_window.h>
@@ -45,67 +48,67 @@
 
 HWComposerSurface::HWComposerSurface(unsigned int width, unsigned int height, unsigned int format, HWC2::Display *display, HWC2::Layer *layer) : HWComposerNativeWindow(width, height, format)
 {
-	this->layer = layer;
-	this->hwcDisplay = display;
+    this->layer = layer;
+    this->hwcDisplay = display;
 }
 
 void HWComposerSurface::present(HWComposerNativeWindowBuffer *buffer)
 {
-	uint32_t numTypes = 0;
-	uint32_t numRequests = 0;
-	HWC2::Error error = HWC2::Error::None;
-	error = hwcDisplay->validate(&numTypes, &numRequests);
+    uint32_t numTypes = 0;
+    uint32_t numRequests = 0;
+    HWC2::Error error = HWC2::Error::None;
+    error = hwcDisplay->validate(&numTypes, &numRequests);
     ALOGD("HWComposerSurface::present().");
 
-	if (error != HWC2::Error::None && error != HWC2::Error::HasChanges) {
-		ALOGE("prepare: validate failed for display %llu: %s (%d)", hwcDisplay->getId(),
-				to_string(error).c_str(), static_cast<int32_t>(error));
-		return;
-	}
+    if (error != HWC2::Error::None && error != HWC2::Error::HasChanges) {
+        ALOGE("prepare: validate failed : %s (%d)",
+            to_string(error).c_str(), static_cast<int32_t>(error));
+        return;
+    }
 
-	if (numTypes || numRequests) {
-		ALOGE("prepare: validate required changes for display %llu: %s (%d)", hwcDisplay->getId(),
-				to_string(error).c_str(), static_cast<int32_t>(error));
-		return;
-	}
+    if (numTypes || numRequests) {
+        ALOGE("prepare: validate required changes : %s (%d)",
+            to_string(error).c_str(), static_cast<int32_t>(error));
+        return;
+    }
 
-	error = hwcDisplay->acceptChanges();
-	if (error != HWC2::Error::None) {
-		ALOGE("prepare: acceptChanges failed: %s", to_string(error).c_str());
-		return;
-	}
+    error = hwcDisplay->acceptChanges();
+    if (error != HWC2::Error::None) {
+        ALOGE("prepare: acceptChanges failed: %s", to_string(error).c_str());
+        return;
+    }
 
-	android::sp<android::GraphicBuffer> target(
-		new android::GraphicBuffer(buffer->handle, android::GraphicBuffer::WRAP_HANDLE,
-			buffer->width, buffer->height,
-			buffer->format, /* layerCount */ 1,
-			buffer->usage, buffer->stride));
+    android::sp<android::GraphicBuffer> target(
+        new android::GraphicBuffer(buffer->handle, android::GraphicBuffer::WRAP_HANDLE,
+            buffer->width, buffer->height,
+            buffer->format, /* layerCount */ 1,
+            buffer->usage, buffer->stride));
 
-	android::sp<android::Fence> acquireFenceFd(
-			new android::Fence(getFenceBufferFd(buffer)));
+    android::sp<android::Fence> acquireFenceFd(
+        new android::Fence(getFenceBufferFd(buffer)));
 #if ANDROID_VERSION >= 28
     android::ui::Dataspace dataspace = android::ui::Dataspace::UNKNOWN;
-	hwcDisplay->setClientTarget(0, target, acquireFenceFd, dataspace);
+    hwcDisplay->setClientTarget(0, target, acquireFenceFd, dataspace);
 #else
     hwcDisplay->setClientTarget(0, target, acquireFenceFd, HAL_DATASPACE_UNKNOWN);
 #endif
-	android::sp<android::Fence> lastPresentFence;
-	error = hwcDisplay->present(&lastPresentFence);
-	if (error != HWC2::Error::None) {
-		ALOGE("presentAndGetReleaseFences: failed for display %llu: %s (%d)",
-			hwcDisplay->getId(), to_string(error).c_str(), static_cast<int32_t>(error));
-		return;
-	}
+    android::sp<android::Fence> lastPresentFence;
+    error = hwcDisplay->present(&lastPresentFence);
+    if (error != HWC2::Error::None) {
+        ALOGE("presentAndGetReleaseFences: failed : %s (%d)",
+            to_string(error).c_str(), static_cast<int32_t>(error));
+        return;
+    }
 
-	std::unordered_map<HWC2::Layer*, android::sp<android::Fence>> releaseFences;
-	error = hwcDisplay->getReleaseFences(&releaseFences);
-	if (error != HWC2::Error::None) {
-		ALOGE("presentAndGetReleaseFences: Failed to get release fences "
-			"for display %llu: %s (%d)",
-				hwcDisplay->getId(), to_string(error).c_str(),
-				static_cast<int32_t>(error));
-		return;
-	}
+    std::unordered_map<HWC2::Layer*, android::sp<android::Fence>> releaseFences;
+    error = hwcDisplay->getReleaseFences(&releaseFences);
+    if (error != HWC2::Error::None) {
+        ALOGE("presentAndGetReleaseFences: Failed to get release fences "
+            "for : %s (%d)",
+            to_string(error).c_str(),
+            static_cast<int32_t>(error));
+        return;
+    }
 
     auto displayFences = releaseFences;
     if (displayFences.count(layer) > 0) {

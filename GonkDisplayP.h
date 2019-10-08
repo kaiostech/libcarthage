@@ -25,7 +25,10 @@
 #include "utils/RefBase.h"
 #include <gui/BufferQueue.h>
 #include "NativeGralloc.h"
-#if ANDROID_VERSION >= 28
+#if ANDROID_VERSION >= 29
+#include "q/HWC2.h"
+#include "q/ComposerHal.h"
+#elif ANDROID_VERSION >= 28
 #include "pie/HWC2.h"
 #include "pie/ComposerHal.h"
 #elif ANDROID_VERSION >= 26
