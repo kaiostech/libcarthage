@@ -69,7 +69,9 @@ else ifeq ($(PLATFORM_SDK_VERSION),29)
     LOCAL_SRC_FILES += q/HWC2.cpp q/ComposerHal.cpp
     LOCAL_SHARED_LIBRARIES += \
         libnativewindow \
+        android.frameworks.vr.composer@1.0 \
         android.hardware.graphics.allocator@3.0 \
+        android.hardware.graphics.composer@2.1 \
         android.hardware.graphics.composer@2.2 \
         android.hardware.graphics.composer@2.3
     LOCAL_HEADER_LIBRARIES := \
@@ -82,6 +84,7 @@ else ifeq ($(PLATFORM_SDK_VERSION),29)
         libhwbinder \
         android.hardware.graphics.allocator@2.0 \
         android.hardware.graphics.allocator@3.0 \
+        android.hardware.graphics.common@1.2 \
         android.hardware.graphics.composer@2.1 \
         android.hardware.graphics.composer@2.2 \
         android.hardware.graphics.composer@2.3
@@ -95,6 +98,7 @@ LOCAL_MODULE_TAGS := tests
 LOCAL_MODULE:= libcarthage
 
 LOCAL_C_INCLUDES += system/core/libsuspend/include \
+                    frameworks/native/libs/ui/include \
 
 LOCAL_CFLAGS := \
     -DANDROID_VERSION_MAJOR=$(ANDROID_VERSION_MAJOR) \
