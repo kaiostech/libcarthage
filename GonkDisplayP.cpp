@@ -144,51 +144,52 @@ GonkDisplayP::GonkDisplayP()
 #else
     mHwc = std::make_unique<HWC2::Device>(false);
 #endif
-	assert(mHwc);
+    assert(mHwc);
     mHwc->registerCallback(new HWComposerCallback(mHwc.get()), 0);
 
-	std::unique_lock<std::mutex> lock(hotplugMutex);
-	HWC2::Display *hwcDisplay;
-	while (!(hwcDisplay = mHwc->getDisplayById(HWC_DISPLAY_PRIMARY))) {
-		/* Wait at most 5s for hotplug events */
-		hotplugCv.wait_for(lock, std::chrono::seconds(5));
-	}
-	hotplugMutex.unlock();
-	assert(hwcDisplay);
+    std::unique_lock<std::mutex> lock(hotplugMutex);
+    HWC2::Display *hwcDisplay;
+    while (!(hwcDisplay = mHwc->getDisplayById(HWC_DISPLAY_PRIMARY))) {
+        /* Wait at most 5s for hotplug events */
+        hotplugCv.wait_for(lock, std::chrono::seconds(5));
+    }
+    hotplugMutex.unlock();
+    assert(hwcDisplay);
 
-	hwcDisplay->setPowerMode(HWC2::PowerMode::On);
+    hwcDisplay->setPowerMode(HWC2::PowerMode::On);
 
-	std::shared_ptr<const HWC2::Display::Config> config;
-	config = getActiveConfig(hwcDisplay, 0);
+    std::shared_ptr<const HWC2::Display::Config> config;
+    config = getActiveConfig(hwcDisplay, 0);
 
-	ALOGI("width: %i height: %i,dpi: %f\n", config->getWidth(), config->getHeight(),config->getDpiX());
+    ALOGI("width: %i height: %i,dpi: %f\n", config->getWidth(), config->getHeight(),config->getDpiX());
 
-	DisplayNativeData &dispData = mDispNativeData[(uint32_t)DisplayType::DISPLAY_PRIMARY];
-	if (config->getWidth() > 0) {
-		dispData.mWidth = config->getWidth();
-		dispData.mHeight = config->getHeight();
-		dispData.mXdpi = config->getDpiX();
-		/* The emulator actually reports RGBA_8888, but EGL doesn't return
-		* any matching configuration. We force RGBX here to fix it. */
-		dispData.mSurfaceformat = HAL_PIXEL_FORMAT_RGBX_8888;
-	}
-	hwcDisplay->createLayer(&mlayer);
+    DisplayNativeData &dispData = mDispNativeData[(uint32_t)DisplayType::DISPLAY_PRIMARY];
+    if (config->getWidth() > 0) {
+        dispData.mWidth = config->getWidth();
+        dispData.mHeight = config->getHeight();
+        dispData.mXdpi = config->getDpiX();
+        /* The emulator actually reports RGBA_8888, but EGL doesn't return
+        * any matching configuration. We force RGBX here to fix it. */
+        /*TODO: need to discuss with vendor to check this format issue.*/
+        dispData.mSurfaceformat = HAL_PIXEL_FORMAT_RGB_888;
+    }
+    hwcDisplay->createLayer(&mlayer);
 
-	android::Rect r = {0, 0, config->getWidth(), config->getHeight()};
-	mlayer->setCompositionType(HWC2::Composition::Client);
-	mlayer->setBlendMode(HWC2::BlendMode::None);
-	mlayer->setSourceCrop(android::FloatRect(0.0f, 0.0f, config->getWidth(), config->getHeight()));
-	mlayer->setDisplayFrame(r);
-	mlayer->setVisibleRegion(android::Region(r));
+    android::Rect r = {0, 0, config->getWidth(), config->getHeight()};
+    mlayer->setCompositionType(HWC2::Composition::Client);
+    mlayer->setBlendMode(HWC2::BlendMode::None);
+    mlayer->setSourceCrop(android::FloatRect(0.0f, 0.0f, config->getWidth(), config->getHeight()));
+    mlayer->setDisplayFrame(r);
+    mlayer->setVisibleRegion(android::Region(r));
 
- 	ALOGI("created native window\n");
- 	native_gralloc_initialize(0);
+    ALOGI("created native window\n");
+    native_gralloc_initialize(0);
 
     CreateFramebufferSurface(mSTClient,
                              mDispSurface,
                              config->getWidth(),
                              config->getHeight(),
-                             HAL_PIXEL_FORMAT_RGBA_8888, 
+                             dispData.mSurfaceformat,
                              hwcDisplay, 
                              mlayer);
 
@@ -203,7 +204,7 @@ GonkDisplayP::GonkDisplayP()
                              mBootAnimDispSurface,
                              config->getWidth(),
                              config->getHeight(),
-                             HAL_PIXEL_FORMAT_RGBA_8888, 
+                             dispData.mSurfaceformat,
                              hwcDisplay, 
                              mlayerBootAnim);
 
