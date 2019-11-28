@@ -304,7 +304,6 @@ Error Display::createLayer(HWC2::Layer** outLayer) {
     auto intError = mComposer.createLayer(mId, &layerId);
     auto error = static_cast<Error>(intError);
     if (error != Error::None) {
-        ALOGD("eastern, [Display::createLayer], error");
         return error;
     }
 
@@ -569,12 +568,9 @@ Error Display::getReleaseFences(std::unordered_map<HWC2::Layer*, sp<Fence>>* out
 
     std::unordered_map<HWC2::Layer*, sp<Fence>> releaseFences;
     releaseFences.reserve(numElements);
-    ALOGE("eastern,[Display::getReleaseFences] numElements:%d.",numElements);
     for (uint32_t element = 0; element < numElements; ++element) {
         auto layer = getLayerById(layerIds[element]);
         if (layer) {
-            ALOGD("eastern,getReleaseFences: layer %" PRIu64
-                    " found on display %" PRIu64, layerIds[element], mId);
             sp<Fence> fence(new Fence(fenceFds[element]));
             releaseFences.emplace(layer, fence);
         } else {

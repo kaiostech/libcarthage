@@ -463,11 +463,6 @@ GonkDisplayP::DoQueueBuffer(ANativeWindowBuffer* buf, DisplayType aDisplayType)
         return error;
     }
 
-    if (mBootAnimSTClient.get()) {
-        ALOGI("mBootAnimSTClient.get \n");
-    } else {
-        ALOGI("mSTClient.get \n");
-    }
     error = nativeWindow->queueBuffer(nativeWindow.get(), buf, -1);
 
     return error;

@@ -58,7 +58,6 @@ void HWComposerSurface::present(HWComposerNativeWindowBuffer *buffer)
     uint32_t numRequests = 0;
     HWC2::Error error = HWC2::Error::None;
     error = hwcDisplay->validate(&numTypes, &numRequests);
-    ALOGD("HWComposerSurface::present().");
 
     if (error != HWC2::Error::None && error != HWC2::Error::HasChanges) {
         ALOGE("prepare: validate failed : %s (%d)",

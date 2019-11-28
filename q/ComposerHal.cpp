@@ -164,7 +164,6 @@ Composer::Composer(const std::string& serviceName)
     : mWriter(kWriterInitialSize),
       mIsUsingVrComposer(serviceName == std::string("vr"))
 {
-    ALOGI("eastern, Composer:%s", serviceName.c_str());
     mComposer = V2_1::IComposer::getService(serviceName);
 
     if (mComposer == nullptr) {
@@ -534,7 +533,6 @@ Error Composer::getReleaseFences(Display display,
         std::vector<Layer>* outLayers, std::vector<int>* outReleaseFences)
 {
     mReader.takeReleaseFences(display, outLayers, outReleaseFences);
-    ALOGE("eastern,[Composer::getReleaseFences] outLayers:%u.",(unsigned int)outLayers->size());
     return Error::NONE;
 }
 
@@ -840,10 +838,9 @@ Error Composer::execute()
     bool queueChanged = false;
     uint32_t commandLength = 0;
     hidl_vec<hidl_handle> commandHandles;
-    ALOGW("eastern, Composer::execute()!");
     if (!mWriter.writeQueue(&queueChanged, &commandLength, &commandHandles)) {
         mWriter.reset();
-        ALOGW("eastern, Composer::execute NO_RESOURCES!");
+        ALOGW("Composer::execute NO_RESOURCES!");
         return Error::NO_RESOURCES;
     }
 
@@ -853,14 +850,12 @@ Error Composer::execute()
         auto error = unwrapRet(ret);
         if (error != Error::NONE) {
             mWriter.reset();
-            ALOGW("eastern, Composer::execute 856!");
             return error;
         }
     }
 
     if (commandLength == 0) {
         mWriter.reset();
-        ALOGW("eastern, Composer::execute commandLength = 0 !");
         return Error::NONE;
     }
 
@@ -929,7 +924,6 @@ Error Composer::execute()
     }
 
     mWriter.reset();
-    ALOGW("eastern, Composer::execute error %d",error);
     return error;
 }
 
@@ -1207,7 +1201,6 @@ Error CommandReader::parse()
             parsed = parseSetPresentFence(length);
             break;
         case IComposerClient::Command::SET_RELEASE_FENCES:
-            ALOGE("eastern,[CommandReader::parse SET_RELEASE_FENCES],length:%d",length);
             parsed = parseSetReleaseFences(length);
             break;
         case IComposerClient::Command ::SET_PRESENT_OR_VALIDATE_DISPLAY_RESULT:
@@ -1322,11 +1315,9 @@ bool CommandReader::parseSetReleaseFences(uint16_t length)
 {
     // (layer id, release fence index) pairs
     if (length % 3 != 0 || !mCurrentReturnData) {
-        ALOGE("eastern,[CommandReader::parseSetReleaseFences],length:%d",length);
         return false;
     }
 
-    ALOGE("eastern,[CommandReader::parseSetReleaseFences],3length:%d",length);
 
     uint32_t count = length / 3;
     mCurrentReturnData->releasedLayers.reserve(count);
@@ -1444,8 +1435,6 @@ void CommandReader::takeReleaseFences(Display display,
 
     ReturnData& data = found->second;
     
-    ALOGE("eastern,[CommandReader::takeReleaseFences] outLayers:%u,releaseFences:%u ",
-         (unsigned int)data.releasedLayers.size(), (unsigned int)data.releaseFences.size() );
 
     *outLayers = std::move(data.releasedLayers);
     *outReleaseFences = std::move(data.releaseFences);

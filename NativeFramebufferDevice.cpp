@@ -228,8 +228,6 @@ NativeFramebufferDevice::Open()
     //       gecko should be different then fb format.
     mSurfaceformat = mFBSurfaceformat;
 
-	ALOGI("[eastern][NativeFramebufferDevice::Open] mSurfaceformat : %d",mSurfaceformat);
-
     mIsEnabled = true;
     return true;
 }
@@ -254,10 +252,8 @@ NativeFramebufferDevice::Post(buffer_handle_t buf)
     if (mFBSurfaceformat == HAL_PIXEL_FORMAT_RGB_565 &&
         mSurfaceformat == HAL_PIXEL_FORMAT_RGBA_8888) {
         Transform8888To565((uint8_t*)mMappedAddr, (uint8_t*)vaddr, mVInfo.xres * mVInfo.yres);
-		ALOGI("[eastern] Post Transform8888To565");
     } else {
         memcpy(mMappedAddr, vaddr, mFInfo.line_length * mVInfo.yres);
-		ALOGI("[eastern] Post memcpy");
     }
 
     mGrmodule->unlock(mGrmodule, buf);
