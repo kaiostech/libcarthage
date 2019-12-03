@@ -127,6 +127,7 @@ std::shared_ptr<const HWC2::Display::Config> getActiveConfig(HWC2::Display* hwcD
 namespace android {
 
 static GonkDisplayP* sGonkDisplay = nullptr;
+static Mutex sMutex;
 
 GonkDisplayP::GonkDisplayP()
     : mHwc(nullptr)
@@ -542,8 +543,10 @@ __attribute__ ((visibility ("weak")))
 GonkDisplay*
 GetGonkDisplayP()
 {
-    if (!sGonkDisplay)
+    Mutex::Autolock _l(sMutex);
+    if (!sGonkDisplay) {
         sGonkDisplay = new GonkDisplayP();
+    }
     return sGonkDisplay;
 }
 #pragma clang diagnostic pop
