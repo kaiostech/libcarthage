@@ -95,13 +95,13 @@ void HWComposerCallback::onHotplugReceived(int32_t sequenceId, hwc2_display_t di
 
 void HWComposerCallback::onRefreshReceived(int32_t sequenceId, hwc2_display_t display)
 {
-    ALOGI("onHotplugReceived(%d, %" PRIu64 ")",
+    ALOGI("onRefreshReceived(%d, %" PRIu64 ")",
             sequenceId, display);
-
-    GonkDisplayInvalidateCBFun func = GetGonkDisplayP()->getInvalidateCallBack();
-    if (func) {
-        func();
-    }
+// disable for gecko refresh crash
+//    GonkDisplayInvalidateCBFun func = GetGonkDisplayP()->getInvalidateCallBack();
+//    if (func) {
+//        func();
+//    }
 }
 
 std::shared_ptr<const HWC2::Display::Config> getActiveConfig(HWC2::Display* hwcDisplay, int32_t displayId) {
