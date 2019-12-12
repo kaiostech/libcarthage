@@ -172,7 +172,7 @@ GonkDisplayP::GonkDisplayP()
         /* The emulator actually reports RGBA_8888, but EGL doesn't return
         * any matching configuration. We force RGBX here to fix it. */
         /*TODO: need to discuss with vendor to check this format issue.*/
-        dispData.mSurfaceformat = HAL_PIXEL_FORMAT_RGB_888;
+        dispData.mSurfaceformat = HAL_PIXEL_FORMAT_RGB_565;
     }
     hwcDisplay->createLayer(&mlayer);
 
