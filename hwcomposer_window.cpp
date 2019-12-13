@@ -436,9 +436,12 @@ int HWComposerNativeWindow::setBuffersFormat(int format)
 {
     int need_realloc = ((unsigned int) format != m_bufFormat);
     TRACE("format=x%x realloc=%d", format, need_realloc);
-    m_bufFormat = format;
-    if (need_realloc)
-        destroyBuffers();
+    //TODO: need to ovbserve this zero format happen on rgb565 or not.
+    if(format != 0x0){
+        m_bufFormat = format;
+        if (need_realloc)
+            destroyBuffers();
+    }
 
     return NO_ERROR;
 }
