@@ -17,6 +17,10 @@
 //#define NO_ERROR                0L
 //#define BAD_VALUE               -1
 
+#ifndef NUM_FRAMEBUFFER_SURFACE_BUFFERS
+#define NUM_FRAMEBUFFER_SURFACE_BUFFERS (3)
+#endif
+
 /**
  * @brief A Class to do common ANativeBuffer initialization and thunk c-style
  *        callbacks into C++ method calls.
