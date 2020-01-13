@@ -13,6 +13,7 @@ extern "C" {
 #include <sync/sync.h>
 };
 
+#include <ui/Fence.h>
 #include <android/log.h>
 //#define TRACE(fmt, ...) __android_log_print(ANDROID_LOG_DEBUG, "HWCNativeWindow", fmt "\n--> %s\n----> %s:%d", ##__VA_ARGS__, __FILE__, __FUNCTION__, __LINE__)
 #define TRACE(fmt, ...)
@@ -149,6 +150,23 @@ int HWComposerNativeWindow::setSwapInterval(int interval)
     return 0;
 }
 #pragma clang diagnostic pop
+
+bool HWComposerNativeWindow::isSignaledFence(int fd) {
+    if (-1 == fd) {
+        return true;
+    }
+
+    struct sync_file_info* info = sync_file_info(fd);
+    if (info) {
+        // status: active(0) signaled(1) error(<0)
+        if (info->status == 1) {
+            sync_file_info_free(info);
+            return true;
+        }
+        sync_file_info_free(info);
+    }
+    return false;
+}
 
 /*
  * Hook called by EGL to acquire a buffer. This call may block if no

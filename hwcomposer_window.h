@@ -35,6 +35,7 @@ public:
 
     int getFenceBufferFd(HWComposerNativeWindowBuffer *buffer);
     void setFenceBufferFd(HWComposerNativeWindowBuffer *buffer, int fd);
+    bool isSignaledFence(int fd);
 protected:
     // overloads from BaseNativeWindow
     virtual int setSwapInterval(int interval);

@@ -83,8 +83,20 @@ void HWComposerSurface::present(HWComposerNativeWindowBuffer *buffer)
             buffer->format, /* layerCount */ 1,
             buffer->usage, buffer->stride));
 
+    int acquireFenceFdId = getFenceBufferFd(buffer);
     android::sp<android::Fence> acquireFenceFd(
-        new android::Fence(getFenceBufferFd(buffer)));
+        new android::Fence(acquireFenceFdId));
+    android::status_t err;
+    if (acquireFenceFd.get()) {
+        err = acquireFenceFd->waitForever("HWComposerSurface::present::acquireBuffer");
+        if (err != android::OK) {
+            ALOGE("Failed to wait for fence of acquired buffer: %s (%d)",
+                    strerror(-err), err);
+        }
+    }
+    if (isSignaledFence(acquireFenceFdId)) {
+        setFenceBufferFd(buffer, -1);
+    }
 #if ANDROID_VERSION >= 28
     android::ui::Dataspace dataspace = android::ui::Dataspace::UNKNOWN;
     hwcDisplay->setClientTarget(0, target, acquireFenceFd, dataspace);
