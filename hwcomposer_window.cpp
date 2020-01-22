@@ -109,7 +109,7 @@ HWComposerNativeWindow::HWComposerNativeWindow(unsigned int width, unsigned int 
     m_height = height;
     m_bufFormat = format;
     m_usage = GRALLOC_USAGE_HW_COMPOSER|GRALLOC_USAGE_HW_FB;
-    m_bufferCount = 2;
+    m_bufferCount = NUM_FRAMEBUFFER_SURFACE_BUFFERS;
     m_nextBuffer = 0;
 }
 
