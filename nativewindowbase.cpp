@@ -1,26 +1,45 @@
+/* (c) 2019 KAI OS TECHNOLOGIES (HONG KONG) LIMITED All rights reserved. This
+ * file or any portion thereof may not be reproduced or used in any manner
+ * whatsoever without the express written permission of KAI OS TECHNOLOGIES
+ * (HONG KONG) LIMITED. KaiOS is the trademark of KAI OS TECHNOLOGIES (HONG
+ * KONG) LIMITED or its affiliate company and may be registered in some
+ * jurisdictions. All other trademarks are the property of their respective
+ * owners.
+ */
+
+#include <android/log.h>
+#include <hardware/gralloc.h>
+#include <stdarg.h>
 #include <string.h>
 #include <system/window.h>
 #include <system/graphics.h>
-#include <hardware/gralloc.h>
-#include "support.h"
-#include <stdarg.h>
 
 extern "C" {
 #include <sync/sync.h>
 }
 
 #include "nativewindowbase.h"
+#include "support.h"
 
-#include <android/log.h>
-//#define TRACE(fmt, ...) __android_log_print(ANDROID_LOG_DEBUG, "HWCNativeWindow", fmt "\n--> %s\n----> %s:%d", ##__VA_ARGS__, __FILE__, __FUNCTION__, __LINE__)
+#ifdef DEBUG
 #define TRACE(fmt, ...)
+    __android_log_print(ANDROID_LOG_DEBUG, "BaseNativeWindow",      \
+                        fmt "\n--> %s\n----> %s:%d", ##__VA_ARGS__, \ 
+                        __FILE__, __FUNCTION__, __LINE__)
+#else
+#define TRACE(fmt, ...)
+#endif
 
-#define LOG_TAG "HWCNativeWindow"
-#ifndef ALOGD
-#define ALOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
+#define LOG_TAG "BaseNativeWindow"
+#ifndef ALOGE
+#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 #endif
 
 using namespace android;
+
+// ----------------------------------------------------------------------------
+// BaseNativeWindowBuffer methods
+// ----------------------------------------------------------------------------
 
 BaseNativeWindowBuffer::BaseNativeWindowBuffer()
 {
@@ -38,7 +57,6 @@ BaseNativeWindowBuffer::BaseNativeWindowBuffer()
     refcount = 0;
 }
 
-
 BaseNativeWindowBuffer::~BaseNativeWindowBuffer()
 {
     TRACE("%p", this);
@@ -47,7 +65,6 @@ BaseNativeWindowBuffer::~BaseNativeWindowBuffer()
     ANativeWindowBuffer::common.incRef = NULL;
     refcount = 0;
 }
-
 
 void BaseNativeWindowBuffer::_decRef(struct android_native_base_t* base)
 {
@@ -62,8 +79,6 @@ void BaseNativeWindowBuffer::_decRef(struct android_native_base_t* base)
     }
 }
 
-
-
 void BaseNativeWindowBuffer::_incRef(struct android_native_base_t* base)
 {
     ANativeWindowBuffer* self = container_of(base, ANativeWindowBuffer, common);
@@ -77,6 +92,10 @@ ANativeWindowBuffer* BaseNativeWindowBuffer::getNativeBuffer() const
 {
     return static_cast<ANativeWindowBuffer*>(const_cast<BaseNativeWindowBuffer*>(this));
 }
+
+// ----------------------------------------------------------------------------
+// BaseNativeWindow methods
+// ----------------------------------------------------------------------------
 
 BaseNativeWindow::BaseNativeWindow()
 {
@@ -143,7 +162,8 @@ int BaseNativeWindow::_setSwapInterval(struct ANativeWindow* window, int interva
     return static_cast<BaseNativeWindow*>(window)->setSwapInterval(interval);
 }
 
-int BaseNativeWindow::_dequeueBuffer_DEPRECATED(ANativeWindow* window, ANativeWindowBuffer** buffer)
+int BaseNativeWindow::_dequeueBuffer_DEPRECATED(ANativeWindow* window,
+    ANativeWindowBuffer** buffer)
 {
     BaseNativeWindowBuffer* temp = static_cast<BaseNativeWindowBuffer*>(*buffer);
     int fenceFd = -1;
@@ -160,15 +180,18 @@ int BaseNativeWindow::_dequeueBuffer_DEPRECATED(ANativeWindow* window, ANativeWi
     return ret;
 }
 
-int BaseNativeWindow::_dequeueBuffer(struct ANativeWindow *window, ANativeWindowBuffer **buffer, int *fenceFd)
+int BaseNativeWindow::_dequeueBuffer(struct ANativeWindow *window,
+    ANativeWindowBuffer **buffer, int *fenceFd)
 {
     BaseNativeWindowBuffer *nativeBuffer = static_cast<BaseNativeWindowBuffer*>(*buffer);
-    int ret = static_cast<BaseNativeWindow*>(window)->dequeueBuffer(&nativeBuffer, fenceFd);
+    int ret = static_cast<BaseNativeWindow*>(window)->dequeueBuffer(
+        &nativeBuffer, fenceFd);
     *buffer = static_cast<ANativeWindowBuffer*>(nativeBuffer);
     return ret;
 }
 
-int BaseNativeWindow::_queueBuffer_DEPRECATED(struct ANativeWindow* window, ANativeWindowBuffer* buffer)
+int BaseNativeWindow::_queueBuffer_DEPRECATED(struct ANativeWindow* window,
+    ANativeWindowBuffer* buffer)
 {
     BaseNativeWindow *nativeWindow = static_cast<BaseNativeWindow*>(window);
     BaseNativeWindowBuffer *nativeBuffer = static_cast<BaseNativeWindowBuffer*>(buffer);
@@ -176,7 +199,8 @@ int BaseNativeWindow::_queueBuffer_DEPRECATED(struct ANativeWindow* window, ANat
     return nativeWindow->queueBuffer(nativeBuffer, -1);
 }
 
-int BaseNativeWindow::_queueBuffer(struct ANativeWindow *window, ANativeWindowBuffer *buffer, int fenceFd)
+int BaseNativeWindow::_queueBuffer(struct ANativeWindow *window,
+    ANativeWindowBuffer *buffer, int fenceFd)
 {
     BaseNativeWindow *nativeWindow = static_cast<BaseNativeWindow*>(window);
     BaseNativeWindowBuffer *nativeBuffer = static_cast<BaseNativeWindowBuffer*>(buffer);
@@ -184,7 +208,8 @@ int BaseNativeWindow::_queueBuffer(struct ANativeWindow *window, ANativeWindowBu
     return nativeWindow->queueBuffer(nativeBuffer, fenceFd);
 }
 
-int BaseNativeWindow::_cancelBuffer_DEPRECATED(struct ANativeWindow* window, ANativeWindowBuffer* buffer)
+int BaseNativeWindow::_cancelBuffer_DEPRECATED(struct ANativeWindow* window,
+    ANativeWindowBuffer* buffer)
 {
     BaseNativeWindow *nativeWindow = static_cast<BaseNativeWindow*>(window);
     BaseNativeWindowBuffer *nativeBuffer = static_cast<BaseNativeWindowBuffer*>(buffer);
@@ -192,7 +217,8 @@ int BaseNativeWindow::_cancelBuffer_DEPRECATED(struct ANativeWindow* window, ANa
     return nativeWindow->cancelBuffer(nativeBuffer, -1);
 }
 
-int BaseNativeWindow::_cancelBuffer(struct ANativeWindow *window, ANativeWindowBuffer *buffer, int fenceFd)
+int BaseNativeWindow::_cancelBuffer(struct ANativeWindow *window,
+    ANativeWindowBuffer *buffer, int fenceFd)
 {
     BaseNativeWindow *nativeWindow = static_cast<BaseNativeWindow*>(window);
     BaseNativeWindowBuffer *nativeBuffer = static_cast<BaseNativeWindowBuffer*>(buffer);
@@ -200,59 +226,101 @@ int BaseNativeWindow::_cancelBuffer(struct ANativeWindow *window, ANativeWindowB
     return nativeWindow->cancelBuffer(nativeBuffer, fenceFd);
 }
 
-int BaseNativeWindow::_lockBuffer_DEPRECATED(struct ANativeWindow* window, ANativeWindowBuffer* buffer)
+int BaseNativeWindow::_lockBuffer_DEPRECATED(struct ANativeWindow* window,
+    ANativeWindowBuffer* buffer)
 {
-    return static_cast<BaseNativeWindow*>(window)->lockBuffer(static_cast<BaseNativeWindowBuffer*>(buffer));
+    return static_cast<BaseNativeWindow*>(window)->lockBuffer(
+        static_cast<BaseNativeWindowBuffer*>(buffer));
 }
 
 const char *BaseNativeWindow::_native_window_operation(int what)
 {
     switch (what) {
-        case NATIVE_WINDOW_SET_USAGE: return "NATIVE_WINDOW_SET_USAGE";
-        case NATIVE_WINDOW_CONNECT: return "NATIVE_WINDOW_CONNECT";
-        case NATIVE_WINDOW_DISCONNECT: return "NATIVE_WINDOW_DISCONNECT";
-        case NATIVE_WINDOW_SET_CROP: return "NATIVE_WINDOW_SET_CROP";
-        case NATIVE_WINDOW_SET_BUFFER_COUNT: return "NATIVE_WINDOW_SET_BUFFER_COUNT";
-        case NATIVE_WINDOW_SET_BUFFERS_GEOMETRY: return "NATIVE_WINDOW_SET_BUFFERS_GEOMETRY";
-        case NATIVE_WINDOW_SET_BUFFERS_TRANSFORM: return "NATIVE_WINDOW_SET_BUFFERS_TRANSFORM";
-        case NATIVE_WINDOW_SET_BUFFERS_TIMESTAMP: return "NATIVE_WINDOW_SET_BUFFERS_TIMESTAMP";
-        case NATIVE_WINDOW_SET_BUFFERS_DIMENSIONS: return "NATIVE_WINDOW_SET_BUFFERS_DIMENSIONS";
-        case NATIVE_WINDOW_SET_BUFFERS_FORMAT: return "NATIVE_WINDOW_SET_BUFFERS_FORMAT";
-        case NATIVE_WINDOW_SET_SCALING_MODE: return "NATIVE_WINDOW_SET_SCALING_MODE";
-        case NATIVE_WINDOW_LOCK: return "NATIVE_WINDOW_LOCK";
-        case NATIVE_WINDOW_UNLOCK_AND_POST: return "NATIVE_WINDOW_UNLOCK_AND_POST";
-        case NATIVE_WINDOW_API_CONNECT: return "NATIVE_WINDOW_API_CONNECT";
-        case NATIVE_WINDOW_API_DISCONNECT: return "NATIVE_WINDOW_API_DISCONNECT";
-        case NATIVE_WINDOW_SET_BUFFERS_USER_DIMENSIONS: return "NATIVE_WINDOW_SET_BUFFERS_USER_DIMENSIONS";
-        case NATIVE_WINDOW_SET_POST_TRANSFORM_CROP: return "NATIVE_WINDOW_SET_POST_TRANSFORM_CROP";
-        case NATIVE_WINDOW_SET_BUFFERS_STICKY_TRANSFORM: return "NATIVE_WINDOW_SET_BUFFERS_STICKY_TRANSFORM";
-        case NATIVE_WINDOW_SET_SIDEBAND_STREAM: return "NATIVE_WINDOW_SET_SIDEBAND_STREAM";
-        case NATIVE_WINDOW_SET_BUFFERS_DATASPACE: return "NATIVE_WINDOW_SET_BUFFERS_DATASPACE";
-        default: return "NATIVE_UNKNOWN_OPERATION";
+        case NATIVE_WINDOW_SET_USAGE:
+            return "NATIVE_WINDOW_SET_USAGE";
+        case NATIVE_WINDOW_CONNECT:
+            return "NATIVE_WINDOW_CONNECT";
+        case NATIVE_WINDOW_DISCONNECT:
+            return "NATIVE_WINDOW_DISCONNECT";
+        case NATIVE_WINDOW_SET_CROP:
+            return "NATIVE_WINDOW_SET_CROP";
+        case NATIVE_WINDOW_SET_BUFFER_COUNT:
+            return "NATIVE_WINDOW_SET_BUFFER_COUNT";
+        case NATIVE_WINDOW_SET_BUFFERS_GEOMETRY:
+            return "NATIVE_WINDOW_SET_BUFFERS_GEOMETRY";
+        case NATIVE_WINDOW_SET_BUFFERS_TRANSFORM:
+            return "NATIVE_WINDOW_SET_BUFFERS_TRANSFORM";
+        case NATIVE_WINDOW_SET_BUFFERS_TIMESTAMP:
+            return "NATIVE_WINDOW_SET_BUFFERS_TIMESTAMP";
+        case NATIVE_WINDOW_SET_BUFFERS_DIMENSIONS:
+            return "NATIVE_WINDOW_SET_BUFFERS_DIMENSIONS";
+        case NATIVE_WINDOW_SET_BUFFERS_FORMAT:
+            return "NATIVE_WINDOW_SET_BUFFERS_FORMAT";
+        case NATIVE_WINDOW_SET_SCALING_MODE:
+            return "NATIVE_WINDOW_SET_SCALING_MODE";
+        case NATIVE_WINDOW_LOCK:
+            return "NATIVE_WINDOW_LOCK";
+        case NATIVE_WINDOW_UNLOCK_AND_POST:
+            return "NATIVE_WINDOW_UNLOCK_AND_POST";
+        case NATIVE_WINDOW_API_CONNECT:
+            return "NATIVE_WINDOW_API_CONNECT";
+        case NATIVE_WINDOW_API_DISCONNECT:
+            return "NATIVE_WINDOW_API_DISCONNECT";
+        case NATIVE_WINDOW_SET_BUFFERS_USER_DIMENSIONS:
+            return "NATIVE_WINDOW_SET_BUFFERS_USER_DIMENSIONS";
+        case NATIVE_WINDOW_SET_POST_TRANSFORM_CROP:
+            return "NATIVE_WINDOW_SET_POST_TRANSFORM_CROP";
+        case NATIVE_WINDOW_SET_BUFFERS_STICKY_TRANSFORM:
+            return "NATIVE_WINDOW_SET_BUFFERS_STICKY_TRANSFORM";
+        case NATIVE_WINDOW_SET_SIDEBAND_STREAM:
+            return "NATIVE_WINDOW_SET_SIDEBAND_STREAM";
+        case NATIVE_WINDOW_SET_BUFFERS_DATASPACE:
+            return "NATIVE_WINDOW_SET_BUFFERS_DATASPACE";
+        default:
+            return "NATIVE_UNKNOWN_OPERATION";
     }
 }
 const char *BaseNativeWindow::_native_query_operation(int what)
 {
     switch (what) {
-        case NATIVE_WINDOW_WIDTH: return "NATIVE_WINDOW_WIDTH";
-        case NATIVE_WINDOW_HEIGHT: return "NATIVE_WINDOW_HEIGHT";
-        case NATIVE_WINDOW_FORMAT: return "NATIVE_WINDOW_FORMAT";
-        case NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS: return "NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS";
-        case NATIVE_WINDOW_QUEUES_TO_WINDOW_COMPOSER: return "NATIVE_WINDOW_QUEUES_TO_WINDOW_COMPOSER";
-        case NATIVE_WINDOW_CONCRETE_TYPE: return "NATIVE_WINDOW_CONCRETE_TYPE";
-        case NATIVE_WINDOW_DEFAULT_WIDTH: return "NATIVE_WINDOW_DEFAULT_WIDTH";
-        case NATIVE_WINDOW_DEFAULT_HEIGHT: return "NATIVE_WINDOW_DEFAULT_HEIGHT";
-        case NATIVE_WINDOW_TRANSFORM_HINT: return "NATIVE_WINDOW_TRANSFORM_HINT";
-        case NATIVE_WINDOW_CONSUMER_RUNNING_BEHIND: return "NATIVE_WINDOW_CONSUMER_RUNNING_BEHIND";
-        case NATIVE_WINDOW_DEFAULT_DATASPACE: return "NATIVE_WINDOW_DEFAULT_DATASPACE";
-        case NATIVE_WINDOW_BUFFER_AGE: return "NATIVE_WINDOW_BUFFER_AGE";
-        case NATIVE_WINDOW_CONSUMER_USAGE_BITS: return "NATIVE_WINDOW_CONSUMER_USAGE_BITS";
-        case NATIVE_WINDOW_IS_VALID: return "NATIVE_WINDOW_IS_VALID";
-        case NATIVE_WINDOW_FRAME_TIMESTAMPS_SUPPORTS_PRESENT: return "NATIVE_WINDOW_FRAME_TIMESTAMPS_SUPPORTS_PRESENT";
-        case NATIVE_WINDOW_CONSUMER_IS_PROTECTED: return "NATIVE_WINDOW_CONSUMER_IS_PROTECTED";
-        case NATIVE_WINDOW_DATASPACE: return "NATIVE_WINDOW_DATASPACE";
-        case NATIVE_WINDOW_MAX_BUFFER_COUNT: return "NATIVE_WINDOW_MAX_BUFFER_COUNT";
-        default: return "NATIVE_UNKNOWN_QUERY";
+        case NATIVE_WINDOW_WIDTH:
+            return "NATIVE_WINDOW_WIDTH";
+        case NATIVE_WINDOW_HEIGHT:
+            return "NATIVE_WINDOW_HEIGHT";
+        case NATIVE_WINDOW_FORMAT:
+            return "NATIVE_WINDOW_FORMAT";
+        case NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS:
+            return "NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS";
+        case NATIVE_WINDOW_QUEUES_TO_WINDOW_COMPOSER:
+            return "NATIVE_WINDOW_QUEUES_TO_WINDOW_COMPOSER";
+        case NATIVE_WINDOW_CONCRETE_TYPE:
+            return "NATIVE_WINDOW_CONCRETE_TYPE";
+        case NATIVE_WINDOW_DEFAULT_WIDTH:
+            return "NATIVE_WINDOW_DEFAULT_WIDTH";
+        case NATIVE_WINDOW_DEFAULT_HEIGHT:
+            return "NATIVE_WINDOW_DEFAULT_HEIGHT";
+        case NATIVE_WINDOW_TRANSFORM_HINT:
+            return "NATIVE_WINDOW_TRANSFORM_HINT";
+        case NATIVE_WINDOW_CONSUMER_RUNNING_BEHIND:
+            return "NATIVE_WINDOW_CONSUMER_RUNNING_BEHIND";
+        case NATIVE_WINDOW_DEFAULT_DATASPACE:
+            return "NATIVE_WINDOW_DEFAULT_DATASPACE";
+        case NATIVE_WINDOW_BUFFER_AGE:
+            return "NATIVE_WINDOW_BUFFER_AGE";
+        case NATIVE_WINDOW_CONSUMER_USAGE_BITS:
+            return "NATIVE_WINDOW_CONSUMER_USAGE_BITS";
+        case NATIVE_WINDOW_IS_VALID:
+            return "NATIVE_WINDOW_IS_VALID";
+        case NATIVE_WINDOW_FRAME_TIMESTAMPS_SUPPORTS_PRESENT:
+            return "NATIVE_WINDOW_FRAME_TIMESTAMPS_SUPPORTS_PRESENT";
+        case NATIVE_WINDOW_CONSUMER_IS_PROTECTED:
+            return "NATIVE_WINDOW_CONSUMER_IS_PROTECTED";
+        case NATIVE_WINDOW_DATASPACE:
+            return "NATIVE_WINDOW_DATASPACE";
+        case NATIVE_WINDOW_MAX_BUFFER_COUNT:
+            return "NATIVE_WINDOW_MAX_BUFFER_COUNT";
+        default:
+            return "NATIVE_UNKNOWN_QUERY";
     }
 }
 
@@ -329,7 +397,7 @@ int BaseNativeWindow::_query(const struct ANativeWindow* window, int what, int* 
             return NO_ERROR;
 
     }
-    ALOGD("EGL error: unkown window attribute! %i", what);
+    ALOGE("EGL error: unkown window attribute! %i", what);
     *value = 0;
     return BAD_VALUE;
 }
@@ -340,84 +408,83 @@ int BaseNativeWindow::_perform(struct ANativeWindow* window, int operation, ... 
     va_list args;
     va_start(args, operation);
 
-    // FIXME
     TRACE("operation(%d) = %s", operation, _native_window_operation(operation));
     switch(operation) {
-    case NATIVE_WINDOW_SET_USAGE                 : //  0,
-    {
-        int usage = va_arg(args, int);
-        va_end(args);
-        return self->setUsage(usage);
-    }
-    case NATIVE_WINDOW_CONNECT                   : //  1,   /* deprecated */
-        ALOGD("connect");
-        break;
-    case NATIVE_WINDOW_DISCONNECT                : //  2,   /* deprecated */
-        ALOGD("disconnect");
-        break;
-    case NATIVE_WINDOW_SET_CROP                  : //  3,   /* private */
-        ALOGD("set crop");
-        break;
-    case NATIVE_WINDOW_SET_BUFFER_COUNT          : //  4,
-    {
-        int cnt = va_arg(args, int);
-        TRACE("set buffer count %i", cnt);
-        va_end(args);
-        return self->setBufferCount(cnt);
-        break;
-    }
-    case NATIVE_WINDOW_SET_BUFFERS_GEOMETRY      : //  5,   /* deprecated */
-        ALOGD("set buffers geometry");
-        break;
-    case NATIVE_WINDOW_SET_BUFFERS_TRANSFORM     : //  6,
-        ALOGD("set buffers transform");
-        break;
-    case NATIVE_WINDOW_SET_BUFFERS_TIMESTAMP     : //  7,
-        ALOGD("set buffers timestamp");
-        break;
-    case NATIVE_WINDOW_SET_BUFFERS_DIMENSIONS    : //  8,
-    {
-        int width  = va_arg(args, int);
-        int height = va_arg(args, int);
-        va_end(args);
-        return self->setBuffersDimensions(width, height);
-    }
-    case NATIVE_WINDOW_SET_BUFFERS_FORMAT        : //  9,
-    {
-        int format = va_arg(args, int);
-        va_end(args);
-        return self->setBuffersFormat(format);
-    }
-    case NATIVE_WINDOW_SET_SCALING_MODE          : // 10,   /* private */
-        ALOGD("set scaling mode");
-    break;
-    case NATIVE_WINDOW_LOCK                      : // 11,   /* private */
-        ALOGD("window lock");
-        break;
-    case NATIVE_WINDOW_UNLOCK_AND_POST           : // 12,   /* private */
-        ALOGD("unlock and post");
-        break;
-    case NATIVE_WINDOW_API_CONNECT               : // 13,   /* private */
-        ALOGD("api connect");
-        break;
-    case NATIVE_WINDOW_API_DISCONNECT            : // 14,   /* private */
-        ALOGD("api disconnect");
-        break;
-    case NATIVE_WINDOW_SET_BUFFERS_USER_DIMENSIONS : // 15, /* private */
-        ALOGD("set buffers user dimensions");
-        break;
-    case NATIVE_WINDOW_SET_POST_TRANSFORM_CROP   : // 16,
-        ALOGD("set post transform crop");
-        break;
-    case NATIVE_WINDOW_SET_BUFFERS_STICKY_TRANSFORM  : // 17,   /* private */
-        ALOGD("set buffers sticky transform");
-        break;
-    case NATIVE_WINDOW_SET_SIDEBAND_STREAM :           // 18,
-        ALOGD("set sideband stream");
-        break;
-    case NATIVE_WINDOW_SET_BUFFERS_DATASPACE :         // 19,
-        ALOGD("set buffers dataspace");
-        break;
+        case NATIVE_WINDOW_SET_USAGE                 :     //  0,
+        {
+            int usage = va_arg(args, int);
+            va_end(args);
+            return self->setUsage(usage);
+        }
+        case NATIVE_WINDOW_CONNECT                   :     //  1,   /* deprecated */
+            TRACE("connect");
+            break;
+        case NATIVE_WINDOW_DISCONNECT                :     //  2,   /* deprecated */
+            TRACE("disconnect");
+            break;
+        case NATIVE_WINDOW_SET_CROP                  :     //  3,   /* private */
+            TRACE("set crop");
+            break;
+        case NATIVE_WINDOW_SET_BUFFER_COUNT          :     //  4,
+        {
+            int cnt = va_arg(args, int);
+            TRACE("set buffer count %i", cnt);
+            va_end(args);
+            return self->setBufferCount(cnt);
+            break;
+        }
+        case NATIVE_WINDOW_SET_BUFFERS_GEOMETRY      :     //  5,   /* deprecated */
+            TRACE("set buffers geometry");
+            break;
+        case NATIVE_WINDOW_SET_BUFFERS_TRANSFORM     :     //  6,
+            TRACE("set buffers transform");
+            break;
+        case NATIVE_WINDOW_SET_BUFFERS_TIMESTAMP     :     //  7,
+            TRACE("set buffers timestamp");
+            break;
+        case NATIVE_WINDOW_SET_BUFFERS_DIMENSIONS    :     //  8,
+        {
+            int width  = va_arg(args, int);
+            int height = va_arg(args, int);
+            va_end(args);
+            return self->setBuffersDimensions(width, height);
+        }
+        case NATIVE_WINDOW_SET_BUFFERS_FORMAT        :     //  9,
+        {
+            int format = va_arg(args, int);
+            va_end(args);
+            return self->setBuffersFormat(format);
+        }
+        case NATIVE_WINDOW_SET_SCALING_MODE          :     // 10,   /* private */
+            TRACE("set scaling mode");
+            break;
+        case NATIVE_WINDOW_LOCK                      :     // 11,   /* private */
+            TRACE("window lock");
+            break;
+        case NATIVE_WINDOW_UNLOCK_AND_POST           :     // 12,   /* private */
+            TRACE("unlock and post");
+            break;
+        case NATIVE_WINDOW_API_CONNECT               :     // 13,   /* private */
+            TRACE("api connect");
+            break;
+        case NATIVE_WINDOW_API_DISCONNECT            :     // 14,   /* private */
+            TRACE("api disconnect");
+            break;
+        case NATIVE_WINDOW_SET_BUFFERS_USER_DIMENSIONS :   // 15, /* private */
+            TRACE("set buffers user dimensions");
+            break;
+        case NATIVE_WINDOW_SET_POST_TRANSFORM_CROP   :     // 16,
+            TRACE("set post transform crop");
+            break;
+        case NATIVE_WINDOW_SET_BUFFERS_STICKY_TRANSFORM  : // 17,   /* private */
+            TRACE("set buffers sticky transform");
+            break;
+        case NATIVE_WINDOW_SET_SIDEBAND_STREAM :           // 18,
+            TRACE("set sideband stream");
+            break;
+        case NATIVE_WINDOW_SET_BUFFERS_DATASPACE :         // 19,
+            TRACE("set buffers dataspace");
+            break;
     }
     va_end(args);
     return NO_ERROR;

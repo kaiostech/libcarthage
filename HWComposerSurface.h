@@ -17,36 +17,36 @@
 #ifndef ANDROID_SF_HWCOMPOSER_H
 #define ANDROID_SF_HWCOMPOSER_H
 
-#include "hwcomposer_window.h"
-#if ANDROID_VERSION == 27
-#include "oreo/HWC2.h"
-#elif ANDROID_VERSION == 28
-#include "pie/HWC2.h"
-#elif ANDROID_VERSION >= 29
-#include "q/HWC2.h"
-#endif
 #include <ui/GraphicBuffer.h>
 #include <ui/Fence.h>
 
+#include "hwcomposer_window.h"
+#if ANDROID_VERSION == 27
+	#include "oreo/HWC2.h"
+#elif ANDROID_VERSION == 28
+	#include "pie/HWC2.h"
+#elif ANDROID_VERSION >= 29
+	#include "q/HWC2.h"
+#endif
 
 //namespace android {
 // ---------------------------------------------------------------------------
-
 
 class HWComposerSurface : public HWComposerNativeWindow
 {
 	private:
 		HWC2::Layer *layer;
 		HWC2::Display *hwcDisplay;
+
 	protected:
 		void present(HWComposerNativeWindowBuffer *buffer);
 
 	public:
+		HWComposerSurface(unsigned int width, unsigned int height,
+			unsigned int format, HWC2::Display *display, HWC2::Layer *layer);
 
-		HWComposerSurface(unsigned int width, unsigned int height, unsigned int format, HWC2::Display *display, HWC2::Layer *layer);
 		void set();	
 };
-
 
 // ---------------------------------------------------------------------------
 //}; // namespace android

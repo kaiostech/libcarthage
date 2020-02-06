@@ -98,11 +98,11 @@ public:
 
 protected:
     DisplaySurface(const sp<StreamConsumer>& sc)
-#if ANDROID_VERSION >= 19
+    #if ANDROID_VERSION >= 19
         : ConsumerBase(sc, true)
-#else
+    #else
         : ConsumerBase(sc)
-#endif
+    #endif
         , lastHandle(0)
     { }
     virtual ~DisplaySurface() {}

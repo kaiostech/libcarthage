@@ -33,7 +33,8 @@ class String8;
 
 class FramebufferSurface : public DisplaySurface {
 public:
-    FramebufferSurface(int disp, uint32_t width, uint32_t height, const sp<StreamConsumer>& sc);
+    FramebufferSurface(int disp, uint32_t width, uint32_t height,
+        const sp<StreamConsumer>& sc);
 
     // From DisplaySurface
     virtual status_t beginFrame(bool mustRecompose);
@@ -58,9 +59,8 @@ private:
     virtual ~FramebufferSurface() { }; // this class cannot be overloaded
 
 #if ANDROID_VERSION >= 26
-
 #elif ANDROID_VERSION >= 22
-    virtual void onFrameAvailable(const ::android::BufferItem &item);
+    virtual void onFrameAvailable(const BufferItem &item);
 #else
     virtual void onFrameAvailable();
 #endif
@@ -83,7 +83,7 @@ private:
     // no current buffer.
     sp<GraphicBuffer> mCurrentBuffer;
 
-    android::sp<android::Fence> mPrevFBAcquireFence;
+    sp<Fence> mPrevFBAcquireFence;
 };
 
 // ---------------------------------------------------------------------------

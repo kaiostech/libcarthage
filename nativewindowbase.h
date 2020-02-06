@@ -1,21 +1,18 @@
 #ifndef NATIVEWINDOWBASE_H
 #define NATIVEWINDOWBASE_H
 
-/* for ICS window.h */
+#include <assert.h>
+#include <EGL/egl.h>
+#include <stdarg.h>
 #include <string.h>
 #include <system/window.h>
-#include <EGL/egl.h>
-#include "support.h"
-#include <stdarg.h>
-#include <assert.h>
 
 #ifdef DEBUG
 #include <stdio.h>
 #endif
 
+#include "support.h"
 #include "utils/Errors.h"
-//#define NO_ERROR                0L
-//#define BAD_VALUE               -1
 
 #ifndef NUM_FRAMEBUFFER_SURFACE_BUFFERS
 #define NUM_FRAMEBUFFER_SURFACE_BUFFERS (3)
@@ -37,9 +34,10 @@ public:
 	ANativeWindowBuffer* getNativeBuffer() const;
 
 private:
-	unsigned int refcount;
 	static void _decRef(struct android_native_base_t* base);
 	static void _incRef(struct android_native_base_t* base);
+
+	unsigned int refcount;
 };
 
 /**
@@ -51,7 +49,8 @@ class BaseNativeWindow : public ANativeWindow
 public:
 	operator EGLNativeWindowType()
 	{
-		EGLNativeWindowType ret = reinterpret_cast<EGLNativeWindowType>(static_cast<ANativeWindow *>(this));
+		EGLNativeWindowType ret = reinterpret_cast<EGLNativeWindowType>(
+			static_cast<ANativeWindow *>(this));
 		return ret;
 	}
 
@@ -59,8 +58,6 @@ protected:
 	BaseNativeWindow();
 	virtual ~BaseNativeWindow();
 
-	// does this require more magic?
-	unsigned int refcount;
 	static void _decRef(struct android_native_base_t* base);
 	static void _incRef(struct android_native_base_t* base);
 
@@ -86,6 +83,10 @@ protected:
 	virtual int setBuffersDimensions(int width, int height) = 0;
 	virtual int setUsage(int usage) = 0;
 	virtual int setBufferCount(int cnt) = 0;
+
+	// does this require more magic?
+	unsigned int refcount;
+
 private:
 	static int _setSwapInterval(struct ANativeWindow* window, int interval);
 	static int _dequeueBuffer_DEPRECATED(ANativeWindow* window, ANativeWindowBuffer** buffer);

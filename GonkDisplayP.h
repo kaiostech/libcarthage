@@ -16,30 +16,32 @@
 #ifndef GONKDISPLAYP_H
 #define GONKDISPLAYP_H
 
+#include <gui/BufferQueue.h>
+#include <hwcomposer_window.h>
+
 #include "DisplaySurface.h"
 #include "GonkDisplay.h"
 #include "hardware/hwcomposer.h"
 #include "hardware/power.h"
+#include "HWComposerSurface.h"
 #include "NativeFramebufferDevice.h"
+#include "NativeGralloc.h"
 #include "ui/Fence.h"
 #include "utils/RefBase.h"
-#include <gui/BufferQueue.h>
-#include "NativeGralloc.h"
 #if ANDROID_VERSION >= 29
-#include "q/HWC2.h"
-#include "q/ComposerHal.h"
+    #include "q/HWC2.h"
+    #include "q/ComposerHal.h"
 #elif ANDROID_VERSION >= 28
-#include "pie/HWC2.h"
-#include "pie/ComposerHal.h"
+    #include "pie/HWC2.h"
+    #include "pie/ComposerHal.h"
 #elif ANDROID_VERSION >= 26
-#include "oreo/HWC2.h"
-#include "oreo/ComposerHal.h"
+    #include "oreo/HWC2.h"
+    #include "oreo/ComposerHal.h"
 #endif
-#include <hwcomposer_window.h>
-#include "HWComposerSurface.h"
 
-
+// ----------------------------------------------------------------------------
 namespace android {
+// ----------------------------------------------------------------------------
 
 class MOZ_EXPORT GonkDisplayP : public GonkDisplay {
 public:
@@ -77,40 +79,42 @@ public:
     virtual void UnlockScreen();
 
     virtual android::sp<ANativeWindow> GetSurface() {return mSTClient;};
+
 private:
     void CreateFramebufferSurface(android::sp<ANativeWindow>& aNativeWindow,
-                                  android::sp<android::DisplaySurface>& aDisplaySurface,
-                                  uint32_t aWidth, uint32_t aHeight,
-                                  unsigned int format, 
-                                  HWC2::Display *display, HWC2::Layer *layer);
+        android::sp<android::DisplaySurface>& aDisplaySurface,
+        uint32_t aWidth, uint32_t aHeight, unsigned int format,
+        HWC2::Display *display, HWC2::Layer *layer);
+
     void CreateVirtualDisplaySurface(android::IGraphicBufferProducer* aSink,
-                                     android::sp<ANativeWindow>& aNativeWindow,
-                                     android::sp<android::DisplaySurface>& aDisplaySurface);
+        android::sp<ANativeWindow>& aNativeWindow,
+        android::sp<android::DisplaySurface>& aDisplaySurface);
 
     void PowerOnDisplay(int aDpy);
 
     int DoQueueBuffer(ANativeWindowBuffer* buf, DisplayType aDisplayType);
 
     std::unique_ptr<HWC2::Device> mHwc;
-    framebuffer_device_t*     mFBDevice;
-    NativeFramebufferDevice*  mExtFBDevice;
-    power_module_t*           mPowerModule;
-    HWC2::Layer* mlayer;
-    HWC2::Layer* mlayerBootAnim;
-    android::sp<android::DisplaySurface> mDispSurface;
-    android::sp<ANativeWindow> mSTClient;
-    android::sp<android::DisplaySurface> mExtDispSurface;
-    android::sp<ANativeWindow> mExtSTClient;
-    android::sp<android::DisplaySurface> mBootAnimDispSurface;
-    android::sp<ANativeWindow> mBootAnimSTClient;
-
-    hwc_display_contents_1_t* mList;
-    OnEnabledCallbackType mEnabledCallback;
-    bool mFBEnabled;
-    bool mExtFBEnabled;
-    android::Mutex mPrimaryScreenLock;
+    framebuffer_device_t*         mFBDevice;
+    NativeFramebufferDevice*      mExtFBDevice;
+    power_module_t*               mPowerModule;
+    HWC2::Layer*                  mlayer;
+    HWC2::Layer*                  mlayerBootAnim;
+    sp<DisplaySurface>            mDispSurface;
+    sp<ANativeWindow>             mSTClient;
+    sp<DisplaySurface>            mExtDispSurface;
+    sp<ANativeWindow>             mExtSTClient;
+    sp<DisplaySurface>            mBootAnimDispSurface;
+    sp<ANativeWindow>             mBootAnimSTClient;
+    hwc_display_contents_1_t*     mList;
+    OnEnabledCallbackType         mEnabledCallback;
+    bool                          mFBEnabled;
+    bool                          mExtFBEnabled;
+    android::Mutex                mPrimaryScreenLock;
 };
 
-}
+// ----------------------------------------------------------------------------
+} // namespace android
+// ----------------------------------------------------------------------------
 
 #endif /* GONKDISPLAYP_H */

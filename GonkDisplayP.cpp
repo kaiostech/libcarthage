@@ -13,8 +13,6 @@
  * limitations under the License.
  */
 
-#include "GonkDisplayP.h"
-
 #include <gui/Surface.h>
 #include <hardware/hardware.h>
 #include <hardware/hwcomposer.h>
@@ -23,6 +21,7 @@
 
 #include "cutils/properties.h"
 #include "FramebufferSurface.h"
+#include "GonkDisplayP.h"
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -35,11 +34,12 @@
 
 using namespace android;
 
+/* global variables */
 std::mutex hotplugMutex;
 std::condition_variable hotplugCv;
 
-typedef android::GonkDisplay::GonkDisplayVsyncCBFun GonkDisplayVsyncCBFun;
-typedef android::GonkDisplay::GonkDisplayInvalidateCBFun GonkDisplayInvalidateCBFun;
+typedef GonkDisplay::GonkDisplayVsyncCBFun GonkDisplayVsyncCBFun;
+typedef GonkDisplay::GonkDisplayInvalidateCBFun GonkDisplayInvalidateCBFun;
 
 class HWComposerCallback : public HWC2::ComposerCallback
 {
@@ -47,13 +47,15 @@ class HWComposerCallback : public HWC2::ComposerCallback
         HWComposerCallback(HWC2::Device* device);
 
         void onVsyncReceived(int32_t sequenceId, hwc2_display_t display,
-                            int64_t timestamp) override;
+            int64_t timestamp) override;
+
         void onHotplugReceived(int32_t sequenceId, hwc2_display_t display,
-                            HWC2::Connection connection
-#if ANDROID_VERSION < 28 /* Android O only */
-                            , bool primaryDisplay
-#endif
-                            ) override;
+            HWC2::Connection connection
+        #if ANDROID_VERSION < 28 /* Android O only */
+            , bool primaryDisplay
+        #endif
+            ) override;
+
         void onRefreshReceived(int32_t sequenceId, hwc2_display_t display) override;
 
     private:
@@ -65,8 +67,9 @@ HWComposerCallback::HWComposerCallback(HWC2::Device* device)
     hwcDevice = device;
 }
 
-void HWComposerCallback::onVsyncReceived(int32_t sequenceId, hwc2_display_t display,
-                                                       int64_t timestamp)
+void
+HWComposerCallback::onVsyncReceived(int32_t sequenceId, hwc2_display_t display,
+    int64_t timestamp)
 {
     //ALOGI("onVsyncReceived(%d, %" PRIu64 ", %" PRId64 ")",
     //        sequenceId, display,timestamp);
@@ -77,26 +80,28 @@ void HWComposerCallback::onVsyncReceived(int32_t sequenceId, hwc2_display_t disp
     }
 }
 
-void HWComposerCallback::onHotplugReceived(int32_t sequenceId, hwc2_display_t display,
-                            HWC2::Connection connection
+void
+HWComposerCallback::onHotplugReceived(int32_t sequenceId, hwc2_display_t display,
+    HWC2::Connection connection
 #if ANDROID_VERSION < 28 /* Android O only */
-                            , bool primaryDisplay
+    , bool primaryDisplay
 #endif
-                            )
+    )
 {
     {
         std::lock_guard<std::mutex> lock(hotplugMutex);
-        ALOGE("HWComposerCallback::onHotplugReceived %d %llu %d", sequenceId, (unsigned long long)display, (uint32_t)connection);
+        ALOGI("HWComposerCallback::onHotplugReceived %d %llu %d", sequenceId,
+            (unsigned long long)display, (uint32_t)connection);
         hwcDevice->onHotplug(display, connection);
     }
 
     hotplugCv.notify_all();
 }
 
-void HWComposerCallback::onRefreshReceived(int32_t sequenceId, hwc2_display_t display)
+void
+HWComposerCallback::onRefreshReceived(int32_t sequenceId, hwc2_display_t display)
 {
-    ALOGI("onHotplugReceived(%d, %" PRIu64 ")",
-            sequenceId, display);
+    ALOGI("onRefreshReceived(%d, %" PRIu64 ")", sequenceId, display);
 
     GonkDisplayInvalidateCBFun func = GetGonkDisplayP()->getInvalidateCallBack();
     if (func) {
@@ -104,7 +109,9 @@ void HWComposerCallback::onRefreshReceived(int32_t sequenceId, hwc2_display_t di
     }
 }
 
-std::shared_ptr<const HWC2::Display::Config> getActiveConfig(HWC2::Display* hwcDisplay, int32_t displayId) {
+std::shared_ptr<const HWC2::Display::Config>
+getActiveConfig(HWC2::Display* hwcDisplay, int32_t displayId)
+{
 	std::shared_ptr<const HWC2::Display::Config> config;
 	auto error = hwcDisplay->getActiveConfig(&config);
 	if (error == HWC2::Error::BadConfig) {
@@ -124,7 +131,9 @@ std::shared_ptr<const HWC2::Display::Config> getActiveConfig(HWC2::Display* hwcD
 }
 
 
+// ----------------------------------------------------------------------------
 namespace android {
+// ----------------------------------------------------------------------------
 
 static GonkDisplayP* sGonkDisplay = nullptr;
 static Mutex sMutex;
@@ -141,7 +150,8 @@ GonkDisplayP::GonkDisplayP()
 {
 #if ANDROID_VERSION >= 28 /* Android P and later */
     std::string serviceName = "default";
-    mHwc = std::make_unique<HWC2::Device>(std::make_unique<android::Hwc2::impl::Composer>(serviceName));
+    mHwc = std::make_unique<HWC2::Device>(
+        std::make_unique<Hwc2::impl::Composer>(serviceName));
 #else
     mHwc = std::make_unique<HWC2::Device>(false);
 #endif
@@ -162,7 +172,8 @@ GonkDisplayP::GonkDisplayP()
     std::shared_ptr<const HWC2::Display::Config> config;
     config = getActiveConfig(hwcDisplay, 0);
 
-    ALOGI("width: %i height: %i,dpi: %f\n", config->getWidth(), config->getHeight(),config->getDpiX());
+    ALOGI("width: %i height: %i,dpi: %f\n", config->getWidth(), config->getHeight(),
+        config->getDpiX());
 
     DisplayNativeData &dispData = mDispNativeData[(uint32_t)DisplayType::DISPLAY_PRIMARY];
     if (config->getWidth() > 0) {
@@ -176,12 +187,13 @@ GonkDisplayP::GonkDisplayP()
     }
     hwcDisplay->createLayer(&mlayer);
 
-    android::Rect r = {0, 0, config->getWidth(), config->getHeight()};
+    Rect r = {0, 0, config->getWidth(), config->getHeight()};
     mlayer->setCompositionType(HWC2::Composition::Client);
     mlayer->setBlendMode(HWC2::BlendMode::None);
-    mlayer->setSourceCrop(android::FloatRect(0.0f, 0.0f, config->getWidth(), config->getHeight()));
+    mlayer->setSourceCrop(FloatRect(0.0f, 0.0f,
+        config->getWidth(), config->getHeight()));
     mlayer->setDisplayFrame(r);
-    mlayer->setVisibleRegion(android::Region(r));
+    mlayer->setVisibleRegion(Region(r));
 
     ALOGI("created native window\n");
     native_gralloc_initialize(0);
@@ -197,9 +209,10 @@ GonkDisplayP::GonkDisplayP()
     hwcDisplay->createLayer(&mlayerBootAnim);
 	mlayerBootAnim->setCompositionType(HWC2::Composition::Client);
 	mlayerBootAnim->setBlendMode(HWC2::BlendMode::None);
-	mlayerBootAnim->setSourceCrop(android::FloatRect(0.0f, 0.0f, config->getWidth(), config->getHeight()));
+	mlayerBootAnim->setSourceCrop(FloatRect(
+        0.0f, 0.0f, config->getWidth(), config->getHeight()));
 	mlayerBootAnim->setDisplayFrame(r);
-	mlayerBootAnim->setVisibleRegion(android::Region(r));
+	mlayerBootAnim->setVisibleRegion(Region(r));
 
     CreateFramebufferSurface(mBootAnimSTClient,
                              mBootAnimDispSurface,
@@ -219,10 +232,10 @@ GonkDisplayP::~GonkDisplayP()
 }
 
 void
-GonkDisplayP::CreateFramebufferSurface(android::sp<ANativeWindow>& aNativeWindow,
-                                        android::sp<android::DisplaySurface>& aDisplaySurface,
-                                        uint32_t aWidth, uint32_t aHeight,
-                                        unsigned int format, HWC2::Display *display, HWC2::Layer *layer)
+GonkDisplayP::CreateFramebufferSurface(sp<ANativeWindow>& aNativeWindow,
+    sp<DisplaySurface>& aDisplaySurface,
+    uint32_t aWidth, uint32_t aHeight, unsigned int format,
+    HWC2::Display *display, HWC2::Layer *layer)
 {
     sp<IGraphicBufferProducer> producer;
     sp<IGraphicBufferConsumer> consumer;
@@ -230,15 +243,15 @@ GonkDisplayP::CreateFramebufferSurface(android::sp<ANativeWindow>& aNativeWindow
 
     aDisplaySurface = new FramebufferSurface(0, aWidth, aHeight, consumer);
 
-    HWComposerSurface *win = new HWComposerSurface(aWidth, aHeight, format, display, layer);
+    HWComposerSurface *nativeWindow = new HWComposerSurface(aWidth, aHeight, format,
+        display, layer);
  	
-    aNativeWindow = static_cast<ANativeWindow *> (win);
+    aNativeWindow = static_cast<ANativeWindow *>(nativeWindow);
 }
 
 void
-GonkDisplayP::CreateVirtualDisplaySurface(android::IGraphicBufferProducer* aSink,
-                                           android::sp<ANativeWindow>& aNativeWindow,
-                                           android::sp<android::DisplaySurface>& aDisplaySurface)
+GonkDisplayP::CreateVirtualDisplaySurface(IGraphicBufferProducer* aSink,
+    sp<ANativeWindow>& aNativeWindow, sp<DisplaySurface>& aDisplaySurface)
 {
 /* TODO: implement VirtualDisplay*/
 
@@ -306,6 +319,7 @@ GonkDisplayP::SetExtEnabled(bool enabled)
     if (!mExtFBDevice) {
         return;
     }
+
     if (enabled) {
         autosuspend_disable();
         mPowerModule->setInteractive(mPowerModule, true);
@@ -350,7 +364,6 @@ GonkDisplayP::SwapBuffers(DisplayType aDisplayType)
         return Post(mDispSurface->lastHandle,
                     mDispSurface->GetPrevDispAcquireFd(),
                     DISPLAY_PRIMARY);
-
     } else if (aDisplayType == DISPLAY_EXTERNAL) {
         if (mExtFBDevice) {
             return Post(mExtDispSurface->lastHandle,
@@ -375,12 +388,11 @@ GonkDisplayP::Post(buffer_handle_t buf, int fence, DisplayType aDisplayType)
         // external screen in general case.
         if (mExtFBDevice) {
             if (fence >= 0) {
-                android::sp<Fence> fenceObj = new Fence(fence);
-                fenceObj->waitForever("GonkDisplayJB::Post");
+                sp<Fence> fenceObj = new Fence(fence);
+                fenceObj->waitForever("GonkDisplay::Post");
             }
             return mExtFBDevice->Post(buf);
         }
-
         return false;
     }
 
@@ -410,11 +422,11 @@ GonkDisplayP::DequeueBuffer(DisplayType aDisplayType)
     nativeWindow->dequeueBuffer(nativeWindow.get(), &buf, &fenceFd);
     sp<Fence> fence(new Fence(fenceFd));
 #if ANDROID_VERSION == 17
-    fence->waitForever(1000, "GonkDisplayJB_DequeueBuffer");
+    fence->waitForever(1000, "GonkDisplay::DequeueBuffer");
     // 1000 is what Android uses. It is a warning timeout in ms.
     // This timeout was removed in ANDROID_VERSION 18.
 #else
-    fence->waitForever("GonkDisplayJB_DequeueBuffer");
+    fence->waitForever("GonkDisplay::DequeueBuffer");
 #endif
     return buf;
 }
@@ -509,7 +521,7 @@ GonkDisplayP::PowerOnDisplay(int displayId)
 
 GonkDisplay::NativeData
 GonkDisplayP::GetNativeData(DisplayType aDisplayType,
-                            android::IGraphicBufferProducer* aSink)
+    IGraphicBufferProducer* aSink)
 {
     NativeData data;
 
@@ -550,4 +562,7 @@ GetGonkDisplayP()
     return sGonkDisplay;
 }
 #pragma clang diagnostic pop
+
+// ----------------------------------------------------------------------------
 } // namespace mozilla --> android
+// ----------------------------------------------------------------------------

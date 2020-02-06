@@ -15,24 +15,19 @@
  ** limitations under the License.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-
 #include <cutils/log.h>
-
-#include <utils/String8.h>
-
-#include <ui/Rect.h>
-
+#include <errno.h>
 #include <EGL/egl.h>
-
-#include <hardware/hardware.h>
 #include <gui/BufferItem.h>
 #include <gui/BufferQueue.h>
 #include <gui/Surface.h>
+#include <hardware/hardware.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <ui/GraphicBuffer.h>
+#include <ui/Rect.h>
+#include <utils/String8.h>
 
 #include "FramebufferSurface.h"
 //#include "GraphicBufferAlloc.h"
@@ -55,9 +50,7 @@ namespace android {
  * was adapted from the version in SurfaceFlinger
  */
 FramebufferSurface::FramebufferSurface(int disp,
-                                       uint32_t width,
-                                       uint32_t height,
-                                       const sp<StreamConsumer>& sc)
+    uint32_t width, uint32_t height, const sp<StreamConsumer>& sc)
     : DisplaySurface(sc)
     , mDisplayType(disp)
     , mCurrentBufferSlot(-1)
@@ -72,23 +65,29 @@ FramebufferSurface::FramebufferSurface(int disp,
     consumer->setConsumerUsageBits(GRALLOC_USAGE_HW_FB |
                                    GRALLOC_USAGE_HW_RENDER |
                                    GRALLOC_USAGE_HW_COMPOSER);
-//    consumer->setDefaultBufferFormat(format);
+    //consumer->setDefaultBufferFormat(format);
     consumer->setDefaultBufferSize(width, height);
     consumer->setMaxAcquiredBufferCount(NUM_FRAMEBUFFER_SURFACE_BUFFERS);
 }
 
-void FramebufferSurface::resizeBuffers(const uint32_t width, const uint32_t height) {
+void FramebufferSurface::resizeBuffers(const uint32_t width,
+    const uint32_t height)
+{
     mConsumer->setDefaultBufferSize(width, height);
 }
-status_t FramebufferSurface::beginFrame(bool /*mustRecompose*/) {
+
+status_t FramebufferSurface::beginFrame(bool /*mustRecompose*/)
+{
     return NO_ERROR;
 }
 
-status_t FramebufferSurface::prepareFrame(CompositionType /*compositionType*/) {
+status_t FramebufferSurface::prepareFrame(CompositionType /*compositionType*/)
+{
     return NO_ERROR;
 }
 
-status_t FramebufferSurface::advanceFrame() {
+status_t FramebufferSurface::advanceFrame()
+{
     sp<GraphicBuffer> buf;
     sp<Fence> acquireFence;
     status_t result = nextBuffer(buf, acquireFence);
@@ -96,22 +95,23 @@ status_t FramebufferSurface::advanceFrame() {
         ALOGE("error latching next FramebufferSurface buffer: %s (%d)",
                 strerror(-result), result);
     }
-    if (acquireFence.get() && acquireFence->isValid())
+
+    if (acquireFence.get() && acquireFence->isValid()) {
         mPrevFBAcquireFence = new Fence(acquireFence->dup());
-    else
+    } else {
         mPrevFBAcquireFence = Fence::NO_FENCE;
+    }
 
     lastHandle = buf->handle;
 	
 	return result;
 }
 
-status_t FramebufferSurface::nextBuffer(sp<GraphicBuffer>& outBuffer, sp<Fence>& outFence) {
+status_t FramebufferSurface::nextBuffer(sp<GraphicBuffer>& outBuffer,
+    sp<Fence>& outFence)
+{
     Mutex::Autolock lock(mMutex);
-
     BufferItem item;
-
-
     status_t err = acquireBufferLocked(&item, 0);
 
     if (err == BufferQueue::NO_BUFFER_AVAILABLE) {
@@ -169,14 +169,16 @@ status_t FramebufferSurface::nextBuffer(sp<GraphicBuffer>& outBuffer, sp<Fence>&
     lastHandle = buf->handle;
 }*/
 
-void FramebufferSurface::freeBufferLocked(int slotIndex) {
+void FramebufferSurface::freeBufferLocked(int slotIndex)
+{
     ConsumerBase::freeBufferLocked(slotIndex);
     if (slotIndex == mCurrentBufferSlot) {
         mCurrentBufferSlot = BufferQueue::INVALID_BUFFER_SLOT;
     }
 }
 
-status_t FramebufferSurface::setReleaseFenceFd(int fenceFd) {
+status_t FramebufferSurface::setReleaseFenceFd(int fenceFd)
+{
     status_t err = NO_ERROR;
     if (fenceFd >= 0) {
         sp<Fence> fence(new Fence(fenceFd));
@@ -191,18 +193,18 @@ status_t FramebufferSurface::setReleaseFenceFd(int fenceFd) {
     return err;
 }
 
-int FramebufferSurface::GetPrevDispAcquireFd() {
+int FramebufferSurface::GetPrevDispAcquireFd()
+{
     if (mPrevFBAcquireFence.get() && mPrevFBAcquireFence->isValid()) {
         return mPrevFBAcquireFence->dup();
     }
     return -1;
 }
 
-void FramebufferSurface::onFrameCommitted() {
+void FramebufferSurface::onFrameCommitted()
+{
   // XXX This role is almost same to setReleaseFenceFd().
 }
-
-
 
 // ----------------------------------------------------------------------------
 }; // namespace android

@@ -19,10 +19,9 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 
-#include "NativeFramebufferDevice.h"
-///**#include "mozilla/FileUtils.h"
-#include "utils/Log.h"
 #include "cutils/properties.h"
+#include "NativeFramebufferDevice.h"
+#include "utils/Log.h"
 
 #ifdef BUILD_ARM_NEON
 #include "rgb8888_to_rgb565_neon.h"
@@ -30,13 +29,17 @@
 
 #define DEFAULT_XDPI 75.0
 
+// ----------------------------------------------------------------------------
 namespace android {
+// ----------------------------------------------------------------------------
 
-inline unsigned int roundUpToPageSize(unsigned int x) {
+inline unsigned int roundUpToPageSize(unsigned int x)
+{
     return (x + (PAGE_SIZE-1)) & ~(PAGE_SIZE-1);
 }
 
-inline void Transform8888To565_Software(uint8_t* outbuf, const uint8_t* inbuf, int PixelNum)
+inline void Transform8888To565_Software(uint8_t* outbuf, const uint8_t* inbuf,
+    int PixelNum)
 {
     uint32_t bytes = PixelNum * 4;
     uint16_t *out = (uint16_t *)outbuf;
@@ -51,9 +54,9 @@ inline void Transform8888To565_Software(uint8_t* outbuf, const uint8_t* inbuf, i
 inline void Transform8888To565(uint8_t* outbuf, const uint8_t* inbuf, int PixelNum)
 {
 #ifdef BUILD_ARM_NEON
-        Transform8888To565_NEON(outbuf, inbuf, PixelNum);
+    Transform8888To565_NEON(outbuf, inbuf, PixelNum);
 #else
-        Transform8888To565_Software(outbuf, inbuf, PixelNum);
+    Transform8888To565_Software(outbuf, inbuf, PixelNum);
 #endif
 }
 
@@ -92,13 +95,14 @@ NativeFramebufferDevice::Create()
 
     int i = 0;
     char name[64];
-
     int fbFd = -1;
+
     while ((fbFd == -1) && device_template[i]) {
         snprintf(name, 64, device_template[i], propValue);
         fbFd = open(name, O_RDWR, 0);
         i++;
     }
+
     if (fbFd < 0) {
         ALOGE("Failed to open external framebuffer device %s", propValue);
         return nullptr;
@@ -130,7 +134,6 @@ NativeFramebufferDevice::Open()
     mVInfo.activate = FB_ACTIVATE_NOW;
 
     if(mVInfo.bits_per_pixel == 32) {
-
         // Explicitly request RGBA_8888
         mVInfo.bits_per_pixel = 32;
         mVInfo.red.offset     = 24;
@@ -144,7 +147,6 @@ NativeFramebufferDevice::Open()
 
         mFBSurfaceformat = HAL_PIXEL_FORMAT_RGBX_8888;
     } else {
-
         // Explicitly request 5/6/5
         mVInfo.bits_per_pixel = 16;
         mVInfo.red.offset     = 11;
@@ -213,12 +215,14 @@ NativeFramebufferDevice::Open()
     mMemLength = roundUpToPageSize(mFInfo.line_length * mVInfo.yres_virtual);
     mMappedAddr = mmap(0, mMemLength, PROT_READ | PROT_WRITE, MAP_SHARED, mFd, 0);
     if (mMappedAddr == (void*)-1) {
-        ALOGE("Error: failed to map framebuffer device to memory %d : %s", errno, strerror(errno));
+        ALOGE("Error: failed to map framebuffer device to memory %d : %s",
+            errno, strerror(errno));
         Close();
         return false;
     }
 
-    mGrmodule = const_cast<gralloc_module_t *>(reinterpret_cast<const gralloc_module_t *>(module));
+    mGrmodule = const_cast<gralloc_module_t *>
+        (reinterpret_cast<const gralloc_module_t *>(module));
 
     mWidth = mVInfo.xres;
     mHeight = mVInfo.yres;
@@ -227,8 +231,8 @@ NativeFramebufferDevice::Open()
     // ToDo: Not sure what kind of situation that surface format reported to
     //       gecko should be different then fb format.
     mSurfaceformat = mFBSurfaceformat;
-
     mIsEnabled = true;
+
     return true;
 }
 
@@ -251,7 +255,8 @@ NativeFramebufferDevice::Post(buffer_handle_t buf)
 
     if (mFBSurfaceformat == HAL_PIXEL_FORMAT_RGB_565 &&
         mSurfaceformat == HAL_PIXEL_FORMAT_RGBA_8888) {
-        Transform8888To565((uint8_t*)mMappedAddr, (uint8_t*)vaddr, mVInfo.xres * mVInfo.yres);
+        Transform8888To565((uint8_t*)mMappedAddr, (uint8_t*)vaddr,
+            mVInfo.xres * mVInfo.yres);
     } else {
         memcpy(mMappedAddr, vaddr, mFInfo.line_length * mVInfo.yres);
     }
@@ -336,4 +341,6 @@ NativeFramebufferDevice::EnableScreen(int enabled)
     return ret;
 }
 
-} // namespace mozilla
+// ----------------------------------------------------------------------------
+} // namespace android
+// ----------------------------------------------------------------------------

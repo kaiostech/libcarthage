@@ -15,7 +15,6 @@
  */
 
 #include <GrallocUsageConversion.h>
-
 #include <hardware/gralloc.h>
 #include <hardware/gralloc1.h>
 
@@ -38,7 +37,8 @@ void android_convertGralloc0To1Usage(int32_t usage, uint64_t* producerUsage,
         GRALLOC1_CONSUMER_USAGE_RENDERSCRIPT | GRALLOC1_CONSUMER_USAGE_GPU_DATA_BUFFER;
     *producerUsage = static_cast<uint64_t>(usage) & PRODUCER_MASK;
     *consumerUsage = static_cast<uint64_t>(usage) & CONSUMER_MASK;
-    if ((static_cast<uint32_t>(usage) & GRALLOC_USAGE_SW_READ_OFTEN) == GRALLOC_USAGE_SW_READ_OFTEN) {
+    if ((static_cast<uint32_t>(usage) & GRALLOC_USAGE_SW_READ_OFTEN) ==
+        GRALLOC_USAGE_SW_READ_OFTEN) {
         *producerUsage |= GRALLOC1_PRODUCER_USAGE_CPU_READ_OFTEN;
         *consumerUsage |= GRALLOC1_CONSUMER_USAGE_CPU_READ_OFTEN;
     }

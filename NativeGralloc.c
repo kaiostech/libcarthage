@@ -1,25 +1,31 @@
-#include <hardware/hardware.h>
+/* (c) 2019 KAI OS TECHNOLOGIES (HONG KONG) LIMITED All rights reserved. This
+ * file or any portion thereof may not be reproduced or used in any manner
+ * whatsoever without the express written permission of KAI OS TECHNOLOGIES
+ * (HONG KONG) LIMITED. KaiOS is the trademark of KAI OS TECHNOLOGIES (HONG
+ * KONG) LIMITED or its affiliate company and may be registered in some
+ * jurisdictions. All other trademarks are the property of their respective
+ * owners.
+ */
 
-#include <hardware/gralloc.h>
-#if HAS_GRALLOC1_HEADER
-#include <GrallocUsageConversion.h>
-#include <hardware/gralloc1.h>
-#endif
+#include <assert.h>
+#include <dlfcn.h>
+#include <errno.h>
 #include <hardware/fb.h>
+#include <hardware/gralloc.h>
+#include <hardware/hardware.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#if HAS_GRALLOC1_HEADER
+    #include <GrallocUsageConversion.h>
+    #include <hardware/gralloc1.h>
+#endif
 
 #include "NativeGralloc.h"
 
-#include <errno.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <assert.h>
-
-#include <dlfcn.h>
-
+/* static variables */
 static int version = -1;
 static hw_module_t *gralloc_hardware_module = NULL;
-
 static framebuffer_device_t *framebuffer_device = NULL;
 static gralloc_module_t *gralloc0_module;
 static alloc_device_t *gralloc0_alloc;
@@ -65,33 +71,43 @@ static void gralloc1_init(void);
 #define GRALLOC1(code) (0) {}
 #endif
 
-#define NO_GRALLOC { fprintf(stderr, "%s:%d: called gralloc method without gralloc loaded\n", __func__, __LINE__); assert(NULL); }
+#define NO_GRALLOC {                                                         \
+    fprintf(stderr, "%s:%d: called gralloc method without gralloc loaded\n", \
+        __func__, __LINE__);                                                 \
+    assert(NULL);                                                            \
+}
 
 void native_gralloc_deinitialize(void);
 
 void native_gralloc_initialize(int framebuffer)
 {
     if (version == -1) {
-        if (hw_get_module(GRALLOC_HARDWARE_MODULE_ID, (const struct hw_module_t **)&gralloc_hardware_module) == 0) {
-#if HAS_GRALLOC1_HEADER
-            if ((gralloc1_open(gralloc_hardware_module, &gralloc1_device) == 0) && (gralloc1_device != NULL)) {
+        if (hw_get_module(GRALLOC_HARDWARE_MODULE_ID, 
+            (const struct hw_module_t **)&gralloc_hardware_module) == 0) {
+        #if HAS_GRALLOC1_HEADER
+            if ((gralloc1_open(gralloc_hardware_module, &gralloc1_device) == 0)
+                && (gralloc1_device != NULL)) {
                 // success
                 ALOGI("%s,gralloc1_open success, l:%d",__func__, __LINE__);
                 gralloc1_init();
                 version = 1;
                 atexit(native_gralloc_deinitialize);
             } else
-#endif
+        #endif
             if (framebuffer) {
-                if (framebuffer_open(gralloc_hardware_module, &framebuffer_device) == 0) {
-                    if ((gralloc_open(gralloc_hardware_module, &gralloc0_alloc) == 0) && gralloc0_alloc != NULL) {
+                if (framebuffer_open(gralloc_hardware_module,
+                    &framebuffer_device) == 0) {
+                    if ((gralloc_open(gralloc_hardware_module,
+                        &gralloc0_alloc) == 0) && gralloc0_alloc != NULL) {
                         // success
                         version = 0;
                         ALOGI("gralloc_open success");
                         atexit(native_gralloc_deinitialize);
                     } else {
                         ALOGI("failed to open the gralloc 0 module");
-                        fprintf(stderr, "failed to open the gralloc 0 module (framebuffer was requested therefore defaulted to version 0)\n");
+                        fprintf(stderr, "failed to open the gralloc 0 module "
+                            "(framebuffer was requested therefore defaulted "
+                            "to version 0)\n");
                         assert(NULL);
                     }
                 } else {
@@ -99,21 +115,23 @@ void native_gralloc_initialize(int framebuffer)
                     fprintf(stderr, "failed to open the framebuffer module\n");
                     assert(NULL);
                 }
-            } else
-            if ((gralloc_open(gralloc_hardware_module, &gralloc0_alloc) == 0) && gralloc0_alloc != NULL) {
+            } else if ((gralloc_open(gralloc_hardware_module, 
+                &gralloc0_alloc) == 0) && gralloc0_alloc != NULL) {
                 // success
                 version = 0;
-                ALOGI("gralloc_open . l:%d",__LINE__);
+                ALOGI("gralloc_open . l:%d", __LINE__);
                 atexit(native_gralloc_deinitialize);
             } else {
                 // fail
                 framebuffer_device = NULL;
-#if HAS_GRALLOC1_HEADER
+            #if HAS_GRALLOC1_HEADER
                 gralloc1_device = NULL;
-#endif
+            #endif
                 version = -2;
-                ALOGI("failed to open gralloc module with both version 0 and 1 methods. l:%d",__LINE__);
-                fprintf(stderr, "failed to open gralloc module with both version 0 and 1 methods\n");
+                ALOGI("failed to open gralloc module with both version 0 and 1"
+                    " methods. l:%d", __LINE__);
+                fprintf(stderr, "failed to open gralloc module with both version "
+                    "0 and 1 methods\n");
                 native_gralloc_deinitialize();
                 assert(NULL);
             }
@@ -168,27 +186,48 @@ static void gralloc1_init(void)
         free(gralloc1_capabilities);
     }
 
-    gralloc1_create_descriptor = (GRALLOC1_PFN_CREATE_DESCRIPTOR)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_CREATE_DESCRIPTOR);
-    gralloc1_destroy_descriptor = (GRALLOC1_PFN_DESTROY_DESCRIPTOR)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_DESTROY_DESCRIPTOR);
-    gralloc1_set_consumer_usage = (GRALLOC1_PFN_SET_CONSUMER_USAGE)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_SET_CONSUMER_USAGE);
-    gralloc1_set_dimensions = (GRALLOC1_PFN_SET_DIMENSIONS)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_SET_DIMENSIONS);
-    gralloc1_set_format = (GRALLOC1_PFN_SET_FORMAT)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_SET_FORMAT);
-    gralloc1_set_producer_usage = (GRALLOC1_PFN_SET_PRODUCER_USAGE)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_SET_PRODUCER_USAGE);
-    gralloc1_get_backing_store = (GRALLOC1_PFN_GET_BACKING_STORE)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_GET_BACKING_STORE);
-    gralloc1_get_consumer_usage = (GRALLOC1_PFN_GET_CONSUMER_USAGE)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_GET_CONSUMER_USAGE);
-    gralloc1_get_dimensions = (GRALLOC1_PFN_GET_DIMENSIONS)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_GET_DIMENSIONS);
-    gralloc1_get_format = (GRALLOC1_PFN_GET_FORMAT)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_GET_FORMAT);
-    gralloc1_get_producer_usage = (GRALLOC1_PFN_GET_PRODUCER_USAGE)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_GET_PRODUCER_USAGE);
-    gralloc1_get_stride = (GRALLOC1_PFN_GET_STRIDE)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_GET_STRIDE);
-    gralloc1_allocate = (GRALLOC1_PFN_ALLOCATE)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_ALLOCATE);
-    gralloc1_retain = (GRALLOC1_PFN_RETAIN)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_RETAIN);
-    gralloc1_release = (GRALLOC1_PFN_RELEASE)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_RELEASE);
-    gralloc1_get_num_flex_planes = (GRALLOC1_PFN_GET_NUM_FLEX_PLANES)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_GET_NUM_FLEX_PLANES);
-    gralloc1_lock = (GRALLOC1_PFN_LOCK)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_LOCK);
-    gralloc1_lock_flex = (GRALLOC1_PFN_LOCK_FLEX)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_LOCK_FLEX);
-    gralloc1_unlock = (GRALLOC1_PFN_UNLOCK)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_UNLOCK);
-    gralloc1_set_layer_count = (GRALLOC1_PFN_SET_LAYER_COUNT)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_SET_LAYER_COUNT);
-    gralloc1_get_layer_count = (GRALLOC1_PFN_GET_LAYER_COUNT)gralloc1_device->getFunction(gralloc1_device, GRALLOC1_FUNCTION_GET_LAYER_COUNT);
+    gralloc1_create_descriptor = (GRALLOC1_PFN_CREATE_DESCRIPTOR)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_CREATE_DESCRIPTOR);
+    gralloc1_destroy_descriptor = (GRALLOC1_PFN_DESTROY_DESCRIPTOR)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_DESTROY_DESCRIPTOR);
+    gralloc1_set_consumer_usage = (GRALLOC1_PFN_SET_CONSUMER_USAGE)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_SET_CONSUMER_USAGE);
+    gralloc1_set_dimensions = (GRALLOC1_PFN_SET_DIMENSIONS)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_SET_DIMENSIONS);
+    gralloc1_set_format = (GRALLOC1_PFN_SET_FORMAT)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_SET_FORMAT);
+    gralloc1_set_producer_usage = (GRALLOC1_PFN_SET_PRODUCER_USAGE)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_SET_PRODUCER_USAGE);
+    gralloc1_get_backing_store = (GRALLOC1_PFN_GET_BACKING_STORE)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_GET_BACKING_STORE);
+    gralloc1_get_consumer_usage = (GRALLOC1_PFN_GET_CONSUMER_USAGE)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_GET_CONSUMER_USAGE);
+    gralloc1_get_dimensions = (GRALLOC1_PFN_GET_DIMENSIONS)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_GET_DIMENSIONS);
+    gralloc1_get_format = (GRALLOC1_PFN_GET_FORMAT)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_GET_FORMAT);
+    gralloc1_get_producer_usage = (GRALLOC1_PFN_GET_PRODUCER_USAGE)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_GET_PRODUCER_USAGE);
+    gralloc1_get_stride = (GRALLOC1_PFN_GET_STRIDE)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_GET_STRIDE);
+    gralloc1_allocate = (GRALLOC1_PFN_ALLOCATE)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_ALLOCATE);
+    gralloc1_retain = (GRALLOC1_PFN_RETAIN)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_RETAIN);
+    gralloc1_release = (GRALLOC1_PFN_RELEASE)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_RELEASE);
+    gralloc1_get_num_flex_planes = (GRALLOC1_PFN_GET_NUM_FLEX_PLANES)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_GET_NUM_FLEX_PLANES);
+    gralloc1_lock = (GRALLOC1_PFN_LOCK)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_LOCK);
+    gralloc1_lock_flex = (GRALLOC1_PFN_LOCK_FLEX)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_LOCK_FLEX);
+    gralloc1_unlock = (GRALLOC1_PFN_UNLOCK)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_UNLOCK);
+    gralloc1_set_layer_count = (GRALLOC1_PFN_SET_LAYER_COUNT)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_SET_LAYER_COUNT);
+    gralloc1_get_layer_count = (GRALLOC1_PFN_GET_LAYER_COUNT)gralloc1_device->getFunction(
+        gralloc1_device, GRALLOC1_FUNCTION_GET_LAYER_COUNT);
 }
 #endif
 
@@ -234,7 +273,8 @@ int native_gralloc_retain(buffer_handle_t handle)
     return ret;
 }
 
-int native_gralloc_allocate(int width, int height, int format, int usage, buffer_handle_t *handle_ptr, uint32_t *stride_ptr)
+int native_gralloc_allocate(int width, int height, int format, int usage,
+    buffer_handle_t *handle_ptr, uint32_t *stride_ptr)
 {
     int ret = -ENOSYS;
 
@@ -260,14 +300,14 @@ int native_gralloc_allocate(int width, int height, int format, int usage, buffer
         ret |= gralloc1_destroy_descriptor(gralloc1_device, desc);
     ) else if GRALLOC0(
         ret = gralloc0_alloc->alloc(gralloc0_alloc,
-                                    width, height, format, usage,
-                                    handle_ptr, (int*)stride_ptr);
+            width, height, format, usage, handle_ptr, (int*)stride_ptr);
     ) else NO_GRALLOC
 
     return ret;
 }
 
-int native_gralloc_lock(buffer_handle_t handle, int usage, int l, int t, int w, int h, void **vaddr)
+int native_gralloc_lock(buffer_handle_t handle, int usage, int l,
+    int t, int w, int h, void **vaddr)
 {
     int ret = -ENOSYS;
 
@@ -281,11 +321,14 @@ int native_gralloc_lock(buffer_handle_t handle, int usage, int l, int t, int w, 
         access_region.width = w;
         access_region.height = h;
 
-        android_convertGralloc0To1Usage(usage, &producer_usage, &consumer_usage);
+        android_convertGralloc0To1Usage(usage, &producer_usage,
+            &consumer_usage);
 
-        ret = gralloc1_lock(gralloc1_device, handle, producer_usage, consumer_usage, &access_region, vaddr, -1);
+        ret = gralloc1_lock(gralloc1_device, handle, producer_usage,
+            consumer_usage, &access_region, vaddr, -1);
     ) else if GRALLOC0(
-        ret = gralloc0_module->lock(gralloc0_module, handle, usage, l, t, w, h, vaddr);
+        ret = gralloc0_module->lock(gralloc0_module, handle, usage,
+            l, t, w, h, vaddr);
     ) else NO_GRALLOC
 
     return ret;

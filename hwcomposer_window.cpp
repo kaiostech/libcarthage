@@ -1,13 +1,23 @@
-#include "hwcomposer_window.h"
-#include "hwcomposer.h"
+/* (c) 2019 KAI OS TECHNOLOGIES (HONG KONG) LIMITED All rights reserved. This
+ * file or any portion thereof may not be reproduced or used in any manner
+ * whatsoever without the express written permission of KAI OS TECHNOLOGIES
+ * (HONG KONG) LIMITED. KaiOS is the trademark of KAI OS TECHNOLOGIES (HONG
+ * KONG) LIMITED or its affiliate company and may be registered in some
+ * jurisdictions. All other trademarks are the property of their respective
+ * owners.
+ */
 
-#include <errno.h>
 #include <assert.h>
+#include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "hwcomposer.h"
+#include "hwcomposer_window.h"
+#include "NativeGralloc.h"
 
 extern "C" {
 #include <sync/sync.h>
@@ -15,13 +25,20 @@ extern "C" {
 
 #include <ui/Fence.h>
 #include <android/log.h>
-//#define TRACE(fmt, ...) __android_log_print(ANDROID_LOG_DEBUG, "HWCNativeWindow", fmt "\n--> %s\n----> %s:%d", ##__VA_ARGS__, __FILE__, __FUNCTION__, __LINE__)
+#ifdef DEBUG
 #define TRACE(fmt, ...)
+    __android_log_print(ANDROID_LOG_DEBUG, "HWComposerNativeWindow", \
+                        fmt "\n--> %s\n----> %s:%d", ##__VA_ARGS__,  \
+                        __FILE__, __FUNCTION__, __LINE__)
+#else
+#define TRACE(fmt, ...)
+#endif
 
-#include "NativeGralloc.h"
 using namespace android;
 
-extern "C" struct ANativeWindow *HWCNativeWindowCreate(unsigned int width, unsigned int height, unsigned int format, HWCPresentCallback present, void *cb_data)
+extern "C"
+struct ANativeWindow *HWCNativeWindowCreate(unsigned int width, unsigned int height,
+    unsigned int format, HWCPresentCallback present, void *cb_data)
 {
     class Window : public HWComposerNativeWindow
     {
@@ -35,7 +52,8 @@ extern "C" struct ANativeWindow *HWCNativeWindowCreate(unsigned int width, unsig
 
         void present(HWComposerNativeWindowBuffer *b)
         {
-            cb(cb_data, static_cast<ANativeWindow *>(this), static_cast<ANativeWindowBuffer *>(b));
+            cb(cb_data, static_cast<ANativeWindow *>(this),
+                static_cast<ANativeWindowBuffer *>(b));
         }
 
         HWCPresentCallback cb;
@@ -49,34 +67,36 @@ extern "C" struct ANativeWindow *HWCNativeWindowCreate(unsigned int width, unsig
     return w;
 }
 
-extern "C" void HWCNativeWindowDestroy(struct ANativeWindow *window)
+extern "C"
+void HWCNativeWindowDestroy(struct ANativeWindow *window)
 {
     delete window;
 }
 
 struct _BufferFenceAccessor : public HWComposerNativeWindowBuffer {
     int get() { return fenceFd; }
+
     void set(int fd) { fenceFd = fd; };
 };
 
-extern "C" int HWCNativeBufferGetFence(struct ANativeWindowBuffer *buf)
+extern "C"
+int HWCNativeBufferGetFence(struct ANativeWindowBuffer *buf)
 {
     return static_cast<_BufferFenceAccessor *>(buf)->get();
 }
 
-extern "C" void HWCNativeBufferSetFence(struct ANativeWindowBuffer *buf, int fd)
+extern "C"
+void HWCNativeBufferSetFence(struct ANativeWindowBuffer *buf, int fd)
 {
     static_cast<_BufferFenceAccessor *>(buf)->set(fd);
 }
 
-static pthread_cond_t _cond = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t _mutex = PTHREAD_MUTEX_INITIALIZER;
-
+// ----------------------------------------------------------------------------
+// HWComposerNativeWindowBuffer methods
+// ----------------------------------------------------------------------------
 
 HWComposerNativeWindowBuffer::HWComposerNativeWindowBuffer(unsigned int width,
-                            unsigned int height,
-                            unsigned int format,
-                            unsigned int usage)
+    unsigned int height, unsigned int format, unsigned int usage)
 {
     ANativeWindowBuffer::width  = width;
     ANativeWindowBuffer::height = height;
@@ -88,11 +108,9 @@ HWComposerNativeWindowBuffer::HWComposerNativeWindowBuffer(unsigned int width,
 
     native_gralloc_allocate(width, height, format, usage, &handle, (uint32_t*)&stride);
 
-    TRACE("width=%d height=%d stride=%d format=x%x usage=x%x status=%s this=%p",
+    TRACE("width=%d height=%d stride=%d format=0x%x usage=0x%x status=%s this=%p",
         width, height, stride, format, usage, strerror(-status), this);
 }
-
-
 
 HWComposerNativeWindowBuffer::~HWComposerNativeWindowBuffer()
 {
@@ -100,15 +118,18 @@ HWComposerNativeWindowBuffer::~HWComposerNativeWindowBuffer()
     native_gralloc_release(handle, 1);
 }
 
+// ----------------------------------------------------------------------------
+// HWComposerNativeWindow methods
+// ----------------------------------------------------------------------------
 
-////////////////////////////////////////////////////////////////////////////////
-HWComposerNativeWindow::HWComposerNativeWindow(unsigned int width, unsigned int height, unsigned int format)
+HWComposerNativeWindow::HWComposerNativeWindow(unsigned int width,
+    unsigned int height, unsigned int format)
 {
     pthread_mutex_init(&m_mutex, 0);
     m_width = width;
     m_height = height;
     m_bufFormat = format;
-    m_usage = GRALLOC_USAGE_HW_COMPOSER|GRALLOC_USAGE_HW_FB;
+    m_usage = GRALLOC_USAGE_HW_COMPOSER | GRALLOC_USAGE_HW_FB;
     m_bufferCount = NUM_FRAMEBUFFER_SURFACE_BUFFERS;
     m_nextBuffer = 0;
 }
@@ -117,8 +138,6 @@ HWComposerNativeWindow::~HWComposerNativeWindow()
 {
     destroyBuffers();
 }
-
-
 
 void HWComposerNativeWindow::destroyBuffers()
 {
@@ -133,9 +152,6 @@ void HWComposerNativeWindow::destroyBuffers()
     m_bufList.clear();
     m_nextBuffer = 0;
 }
-
-
-
 
 /*
  * Set the swap interval for this surface.
@@ -187,7 +203,8 @@ bool HWComposerNativeWindow::isSignaledFence(int fd) {
  *
  * Returns 0 on success or -errno on error.
  */
-int HWComposerNativeWindow::dequeueBuffer(BaseNativeWindowBuffer** buffer, int *fenceFd)
+int HWComposerNativeWindow::dequeueBuffer(BaseNativeWindowBuffer** buffer,
+    int *fenceFd)
 {
     //HYBRIS_TRACE_BEGIN("hwcomposer-platform", "dequeueBuffer", "");
 
@@ -198,7 +215,6 @@ int HWComposerNativeWindow::dequeueBuffer(BaseNativeWindowBuffer** buffer, int *
         allocateBuffers();
     assert(!m_bufList.empty());
     assert(m_nextBuffer < m_bufList.size());
-
 
     // Grabe the next available buffer in the list and assign m_nextBuffer to
     // the next one.
@@ -211,8 +227,10 @@ int HWComposerNativeWindow::dequeueBuffer(BaseNativeWindowBuffer** buffer, int *
 
     // assign the buffer's fence to fenceFd and close/reset our fd.
     int fence = b->fenceFd;
-    if (fenceFd)
+    if (fenceFd) {
         *fenceFd = dup(fence);
+    }
+
     if (fence != -1) {
         close(b->fenceFd);
         b->fenceFd = -1;
@@ -310,7 +328,6 @@ int HWComposerNativeWindow::cancelBuffer(BaseNativeWindowBuffer* buffer, int fen
     return 0;
 }
 
-
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
 int HWComposerNativeWindow::lockBuffer(BaseNativeWindowBuffer* buffer)
@@ -330,7 +347,6 @@ unsigned int HWComposerNativeWindow::width() const
     return rv;
 }
 
-
 /*
  * see NATIVE_WINDOW_HEIGHT
  */
@@ -341,17 +357,15 @@ unsigned int HWComposerNativeWindow::height() const
     return rv;
 }
 
-
 /*
  * see NATIVE_WINDOW_FORMAT
  */
 unsigned int HWComposerNativeWindow::format() const
 {
     unsigned int rv = m_bufFormat;
-    TRACE("format=x%x", rv);
+    TRACE("format=0x%x", rv);
     return rv;
 }
-
 
 /*
  * Default width and height of ANativeWindow buffers, these are the
@@ -369,7 +383,6 @@ unsigned int HWComposerNativeWindow::defaultHeight() const
     return rv;
 }
 
-
 /*
  * see BaseNativeWindow::_query(NATIVE_WINDOW_DEFAULT_WIDTH)
  */
@@ -380,7 +393,6 @@ unsigned int HWComposerNativeWindow::defaultWidth() const
     return rv;
 }
 
-
 /*
  * see NATIVE_WINDOW_QUEUES_TO_WINDOW_COMPOSER
  */
@@ -389,7 +401,6 @@ unsigned int HWComposerNativeWindow::queueLength() const
     TRACE("");
     return 0;
 }
-
 
 /*
  * see NATIVE_WINDOW_CONCRETE_TYPE
@@ -400,7 +411,6 @@ unsigned int HWComposerNativeWindow::type() const
     return NATIVE_WINDOW_FRAMEBUFFER;
 }
 
-
 /*
  * see NATIVE_WINDOW_TRANSFORM_HINT
  */
@@ -408,10 +418,11 @@ unsigned int HWComposerNativeWindow::transformHint() const
 {
     TRACE("");
     char* transform_rot = getenv("NATIVE_HAL_TRANSFORM_ROT");
-    if (transform_rot)
+    if (transform_rot) {
         return atoi(transform_rot);
-    else
+    } else {
         return 0;
+    }
 }
 
 /*
@@ -434,15 +445,15 @@ unsigned int HWComposerNativeWindow::getUsage() const
  */
 int HWComposerNativeWindow::setUsage(int usage)
 {
-    usage |= GRALLOC_USAGE_HW_COMPOSER|GRALLOC_USAGE_HW_FB;
+    usage |= GRALLOC_USAGE_HW_COMPOSER | GRALLOC_USAGE_HW_FB;
     int need_realloc = (m_usage != (unsigned int) usage);
-    TRACE("usage=x%x realloc=%d", usage, need_realloc);
+    TRACE("usage=0x%x realloc=%d", usage, need_realloc);
     m_usage = usage;
-    if (need_realloc)
+    if (need_realloc) {
         destroyBuffers();
+    }
     return NO_ERROR;
 }
-
 
 /*
  * native_window_set_buffers_format(..., int format)
@@ -453,17 +464,17 @@ int HWComposerNativeWindow::setUsage(int usage)
 int HWComposerNativeWindow::setBuffersFormat(int format)
 {
     int need_realloc = ((unsigned int) format != m_bufFormat);
-    TRACE("format=x%x realloc=%d", format, need_realloc);
+    TRACE("format=0x%x realloc=%d", format, need_realloc);
     //TODO: need to ovbserve this zero format happen on rgb565 or not.
     if(format != 0x0){
         m_bufFormat = format;
-        if (need_realloc)
+        if (need_realloc) {
             destroyBuffers();
+        }
     }
 
     return NO_ERROR;
 }
-
 
 /*
  * native_window_set_buffer_count(..., count)
@@ -486,8 +497,8 @@ void HWComposerNativeWindow::allocateBuffers()
 
     for(unsigned int i = 0; i < m_bufferCount; i++)
     {
-        HWComposerNativeWindowBuffer *b
-         = new HWComposerNativeWindowBuffer(m_width, m_height, m_bufFormat, m_usage);
+        HWComposerNativeWindowBuffer *b = new HWComposerNativeWindowBuffer(
+            m_width, m_height, m_bufFormat, m_usage);
 
         b->common.incRef(&b->common);
 
@@ -497,8 +508,8 @@ void HWComposerNativeWindow::allocateBuffers()
 
         if (b->status) {
             b->common.decRef(&b->common);
-            fprintf(stderr,"WARNING: %s: allocated only %d buffers out of %d\n", __PRETTY_FUNCTION__,
-                    (uint32_t) m_bufList.size(), m_bufferCount);
+            fprintf(stderr,"WARNING: %s: allocated only %d buffers out of %d\n",
+                __PRETTY_FUNCTION__, (uint32_t)m_bufList.size(), m_bufferCount);
             break;
         }
 

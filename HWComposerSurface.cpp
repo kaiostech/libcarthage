@@ -14,39 +14,37 @@
  * limitations under the License.
  */
 
-
-#include "HWComposerSurface.h"
-
 #include <gui/Surface.h>
-
-
 #include <hardware/hardware.h>
 #include <hardware/hwcomposer.h>
 #include <hardware/power.h>
+#include <hwcomposer_window.h>
 
 #include "cutils/properties.h"
 #include "FramebufferSurface.h"
+#include "HWComposerSurface.h"
 #include "NativeGralloc.h"
 #if ANDROID_VERSION == 27
-#include "oreo/HWC2.h"
-#include "oreo/ComposerHal.h"
+    #include "oreo/HWC2.h"
+    #include "oreo/ComposerHal.h"
 #elif ANDROID_VERSION == 28
-#include "pie/HWC2.h"
-#include "pie/ComposerHal.h"
+    #include "pie/HWC2.h"
+    #include "pie/ComposerHal.h"
 #elif ANDROID_VERSION >= 29
-#include "q/HWC2.h"
-#include "q/ComposerHal.h"
+    #include "q/HWC2.h"
+    #include "q/ComposerHal.h"
 #endif
-
-#include <hwcomposer_window.h>
 
 #ifdef LOG_TAG
 #undef LOG_TAG
 #define LOG_TAG "HWComposerSurface"
 #endif
 
+using namespace android;
 
-HWComposerSurface::HWComposerSurface(unsigned int width, unsigned int height, unsigned int format, HWC2::Display *display, HWC2::Layer *layer) : HWComposerNativeWindow(width, height, format)
+HWComposerSurface::HWComposerSurface(unsigned int width, unsigned int height,
+    unsigned int format, HWC2::Display *display, HWC2::Layer *layer)
+    : HWComposerNativeWindow(width, height, format)
 {
     this->layer = layer;
     this->hwcDisplay = display;
@@ -57,8 +55,8 @@ void HWComposerSurface::present(HWComposerNativeWindowBuffer *buffer)
     uint32_t numTypes = 0;
     uint32_t numRequests = 0;
     HWC2::Error error = HWC2::Error::None;
-    error = hwcDisplay->validate(&numTypes, &numRequests);
 
+    error = hwcDisplay->validate(&numTypes, &numRequests);
     if (error != HWC2::Error::None && error != HWC2::Error::HasChanges) {
         ALOGE("prepare: validate failed : %s (%d)",
             to_string(error).c_str(), static_cast<int32_t>(error));
@@ -77,33 +75,36 @@ void HWComposerSurface::present(HWComposerNativeWindowBuffer *buffer)
         return;
     }
 
-    android::sp<android::GraphicBuffer> target(
-        new android::GraphicBuffer(buffer->handle, android::GraphicBuffer::WRAP_HANDLE,
+    sp<GraphicBuffer> target(
+        new GraphicBuffer(buffer->handle, GraphicBuffer::WRAP_HANDLE,
             buffer->width, buffer->height,
             buffer->format, /* layerCount */ 1,
             buffer->usage, buffer->stride));
 
     int acquireFenceFdId = getFenceBufferFd(buffer);
-    android::sp<android::Fence> acquireFenceFd(
-        new android::Fence(acquireFenceFdId));
-    android::status_t err;
+    sp<Fence> acquireFenceFd(new Fence(acquireFenceFdId));
+    status_t err;
     if (acquireFenceFd.get()) {
-        err = acquireFenceFd->waitForever("HWComposerSurface::present::acquireBuffer");
-        if (err != android::OK) {
+        err = acquireFenceFd->waitForever(
+            "HWComposerSurface::present::acquireBuffer");
+        if (err != OK) {
             ALOGE("Failed to wait for fence of acquired buffer: %s (%d)",
                     strerror(-err), err);
         }
     }
+
     if (isSignaledFence(acquireFenceFdId)) {
         setFenceBufferFd(buffer, -1);
     }
+
 #if ANDROID_VERSION >= 28
-    android::ui::Dataspace dataspace = android::ui::Dataspace::UNKNOWN;
+    ui::Dataspace dataspace = ui::Dataspace::UNKNOWN;
     hwcDisplay->setClientTarget(0, target, acquireFenceFd, dataspace);
 #else
-    hwcDisplay->setClientTarget(0, target, acquireFenceFd, HAL_DATASPACE_UNKNOWN);
+    hwcDisplay->setClientTarget(0, target, acquireFenceFd,
+        HAL_DATASPACE_UNKNOWN);
 #endif
-    android::sp<android::Fence> lastPresentFence;
+    sp<Fence> lastPresentFence;
     error = hwcDisplay->present(&lastPresentFence);
     if (error != HWC2::Error::None) {
         ALOGE("presentAndGetReleaseFences: failed : %s (%d)",
@@ -111,7 +112,7 @@ void HWComposerSurface::present(HWComposerNativeWindowBuffer *buffer)
         return;
     }
 
-    std::unordered_map<HWC2::Layer*, android::sp<android::Fence>> releaseFences;
+    std::unordered_map<HWC2::Layer*, sp<Fence>> releaseFences;
     error = hwcDisplay->getReleaseFences(&releaseFences);
     if (error != HWC2::Error::None) {
         ALOGE("presentAndGetReleaseFences: Failed to get release fences "
@@ -125,9 +126,4 @@ void HWComposerSurface::present(HWComposerNativeWindowBuffer *buffer)
     if (displayFences.count(layer) > 0) {
        setFenceBufferFd(buffer, releaseFences[layer]->dup());
     }
-
 } 
-
-
-// ---------------------------------------------------------------------------
-//}; // namespace android

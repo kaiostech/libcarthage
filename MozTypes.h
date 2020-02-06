@@ -12,11 +12,11 @@
 #define EMULATOR_DISPLAY_PRIMARY 1
 
 #ifndef MOZ_ASSERT
-#ifdef DEBUG
-#  define MOZ_ASSERT(e...) __android_log_assert(e, "TAG", #e);
-#else
-#  define MOZ_ASSERT(...) do { } while (0)
-#endif /* DEBUG */
+	#ifdef DEBUG
+		#define MOZ_ASSERT(e...) __android_log_assert(e, "TAG", #e);
+	#else
+		#define MOZ_ASSERT(...) do { } while (0)
+	#endif /* DEBUG */
 #endif
 
 #endif /* MOZTYPES_H */

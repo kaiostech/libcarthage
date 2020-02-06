@@ -21,7 +21,9 @@
 #include <system/window.h>
 #include <utils/Mutex.h>
 
+// ----------------------------------------------------------------------------
 namespace android {
+// ----------------------------------------------------------------------------
 
 class NativeFramebufferDevice {
 public:
@@ -45,7 +47,9 @@ public:
 
 private:
     NativeFramebufferDevice(int aExtFbFd);
+
     bool Close();
+
     void DrawSolidColorFrame();
 
     bool mIsEnabled;
@@ -61,6 +65,8 @@ private:
     mutable android::Mutex mMutex;
 };
 
-}
+// ----------------------------------------------------------------------------
+} // namespace android
+// ----------------------------------------------------------------------------
 
 #endif /* NATIVEFRAMEBUFFERDEVICE_H */

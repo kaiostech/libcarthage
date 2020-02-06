@@ -1,24 +1,29 @@
+/* (c) 2019 KAI OS TECHNOLOGIES (HONG KONG) LIMITED All rights reserved. This
+ * file or any portion thereof may not be reproduced or used in any manner
+ * whatsoever without the express written permission of KAI OS TECHNOLOGIES
+ * (HONG KONG) LIMITED. KaiOS is the trademark of KAI OS TECHNOLOGIES (HONG
+ * KONG) LIMITED or its affiliate company and may be registered in some
+ * jurisdictions. All other trademarks are the property of their respective
+ * owners.
+ */
 
 #ifndef FBDEV_WINDOW_H
 #define FBDEV_WINDOW_H
 
-#include "nativewindowbase.h"
-#include <linux/fb.h>
 #include <hardware/gralloc.h>
+#include <linux/fb.h>
 #include <pthread.h>
-
 #include <vector>
 
+#include "nativewindowbase.h"
 
 class HWComposerNativeWindowBuffer : public BaseNativeWindowBuffer {
 friend class HWComposerNativeWindow;
 
 protected:
-    HWComposerNativeWindowBuffer(unsigned int width,
-                            unsigned int height,
-                            unsigned int format,
-                            unsigned int usage) ;
-   virtual ~HWComposerNativeWindowBuffer() ;
+    HWComposerNativeWindowBuffer(unsigned int width, unsigned int height,
+        unsigned int format, unsigned int usage) ;
+    virtual ~HWComposerNativeWindowBuffer() ;
 
 protected:
     int busy;
@@ -26,7 +31,6 @@ protected:
     int status;
     alloc_device_t* m_alloc;
 };
-
 
 class HWComposerNativeWindow : public BaseNativeWindow {
 public:
@@ -36,6 +40,7 @@ public:
     int getFenceBufferFd(HWComposerNativeWindowBuffer *buffer);
     void setFenceBufferFd(HWComposerNativeWindowBuffer *buffer, int fd);
     bool isSignaledFence(int fd);
+
 protected:
     // overloads from BaseNativeWindow
     virtual int setSwapInterval(int interval);

@@ -18,31 +18,28 @@
 
 #include <system/window.h>
 #include <utils/StrongPointer.h>
-///**#include "mozilla/Types.h"
+
 #include "DisplaySurface.h"
 #include "MozTypes.h"
 
-   /**
-    * This enum is for types of display. DISPLAY_PRIMARY refers to the default
-    * built-in display, DISPLAY_EXTERNAL refers to displays connected with
-    * HDMI, and DISPLAY_VIRTUAL are displays which makes composited output
-    * available within the system. Currently, displays of external are detected
-    * via the hotplug detection in HWC, and displays of virtual are connected
-    * via Wifi Display.
-    */
-    enum DisplayType {
-        DISPLAY_PRIMARY = 0,
-        DISPLAY_EXTERNAL,
-        DISPLAY_VIRTUAL,
-        NUM_DISPLAY_TYPES
-    };
+/**
+ * This enum is for types of display. DISPLAY_PRIMARY refers to the default
+ * built-in display, DISPLAY_EXTERNAL refers to displays connected with
+ * HDMI, and DISPLAY_VIRTUAL are displays which makes composited output
+ * available within the system. Currently, displays of external are detected
+ * via the hotplug detection in HWC, and displays of virtual are connected
+ * via Wifi Display.
+ */
+enum DisplayType {
+    DISPLAY_PRIMARY = 0,
+    DISPLAY_EXTERNAL,
+    DISPLAY_VIRTUAL,
+    NUM_DISPLAY_TYPES
+};
 
+// ----------------------------------------------------------------------------
 namespace android {
-///class DisplaySurface;
-///class IGraphicBufferProducer;
-
-
-///**namespace mozilla {
+// ----------------------------------------------------------------------------
 
 typedef void * EGLDisplay;
 typedef void * EGLSurface;
@@ -51,9 +48,9 @@ class GonkDisplay {
 public:
     struct NativeData {
         android::sp<ANativeWindow> mNativeWindow;
-#if ANDROID_VERSION >= 17
+    #if ANDROID_VERSION >= 17
         android::sp<DisplaySurface> mDisplaySurface;
-#endif
+    #endif
         float mXdpi;
         bool mComposer2DSupported;
         // True if platform is capable of notifying the system when a vsync
@@ -101,14 +98,13 @@ public:
 
     virtual void UpdateDispSurface(EGLDisplay dpy, EGLSurface sur) = 0;
 
-    virtual NativeData GetNativeData(
-        DisplayType aDisplayType,
+    virtual NativeData GetNativeData(DisplayType aDisplayType,
         android::IGraphicBufferProducer* aSink = nullptr) = 0;
 
     virtual void NotifyBootAnimationStopped() = 0;
 
-    virtual const DisplayNativeData& GetDispNativeData(
-        DisplayType aDisplayType) {
+    virtual const DisplayNativeData& GetDispNativeData(DisplayType aDisplayType)
+    {
         return mDispNativeData[aDisplayType];
     }
 
@@ -127,20 +123,24 @@ public:
 #if ANDROID_VERSION >= 26
     typedef void (*GonkDisplayVsyncCBFun)
             (int display, int64_t timestamp);
-    virtual void registerVsyncCallBack(GonkDisplayVsyncCBFun func) {
+    virtual void registerVsyncCallBack(GonkDisplayVsyncCBFun func)
+    {
         pVsyncCBFun = func;
     }
 
-    virtual GonkDisplayVsyncCBFun getVsyncCallBack() {
+    virtual GonkDisplayVsyncCBFun getVsyncCallBack()
+    {
         return pVsyncCBFun;
     }
 
     typedef void (*GonkDisplayInvalidateCBFun) (void);
-    virtual void registerInvalidateCallBack(GonkDisplayInvalidateCBFun func) {
+    virtual void registerInvalidateCallBack(GonkDisplayInvalidateCBFun func)
+    {
         pInvalidateCBFun = func;
     }
 
-    virtual GonkDisplayInvalidateCBFun getInvalidateCallBack() {
+    virtual GonkDisplayInvalidateCBFun getInvalidateCallBack()
+    {
         return pInvalidateCBFun;
     }
 #endif
@@ -156,5 +156,7 @@ protected:
 extern "C" MOZ_EXPORT __attribute__ ((weak))
 GonkDisplay* GetGonkDisplayP();
 
-}
+// ----------------------------------------------------------------------------
+} // namespace android
+// ----------------------------------------------------------------------------
 #endif /* GONKDISPLAY_H */

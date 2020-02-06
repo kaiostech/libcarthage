@@ -25,17 +25,15 @@
 #define LOG_NDEBUG 0
 
 #include <algorithm>
-#include <limits>
-#include <memory>
-#include <vector>
-
-#include <inttypes.h>
-#include <string.h>
-
 #include <android/hardware/graphics/composer/2.1/IComposer.h>
-#include <log/log.h>
-#include <sync/sync.h>
 #include <fmq/MessageQueue.h>
+#include <inttypes.h>
+#include <limits>
+#include <log/log.h>
+#include <memory>
+#include <string.h>
+#include <sync/sync.h>
+#include <vector>
 
 namespace android {
 namespace hardware {
@@ -86,7 +84,7 @@ public:
     {
         uint32_t val = (offset < mDataWritten) ? mData[offset] : 0;
         return static_cast<IComposerClient::Command>(val &
-                static_cast<uint32_t>(IComposerClient::Command::OPCODE_MASK));
+            static_cast<uint32_t>(IComposerClient::Command::OPCODE_MASK));
     }
 
     bool writeQueue(bool* outQueueChanged, uint32_t* outCommandLength,
@@ -131,8 +129,7 @@ public:
 
         *outCommandLength = mDataWritten;
         outCommandHandles->setToExternal(
-                const_cast<hidl_handle*>(mDataHandles.data()),
-                mDataHandles.size());
+            const_cast<hidl_handle*>(mDataHandles.data()), mDataHandles.size());
 
         return true;
     }
@@ -171,7 +168,8 @@ public:
 
     static constexpr uint32_t kPresentOrValidateDisplayResultLength = 1;
     void setPresentOrValidateResult(uint32_t  state) {
-       beginCommand(IComposerClient::Command::SET_PRESENT_OR_VALIDATE_DISPLAY_RESULT, kPresentOrValidateDisplayResultLength);
+       beginCommand(IComposerClient::Command::SET_PRESENT_OR_VALIDATE_DISPLAY_RESULT,
+        kPresentOrValidateDisplayResultLength);
        write(state);
        endCommand();
     }

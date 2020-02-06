@@ -25,7 +25,7 @@ struct ANativeWindow;
 struct ANativeWindowBuffer;
 
 typedef void (*HWCPresentCallback)(void *user_data, struct ANativeWindow *window,
-                                   struct ANativeWindowBuffer *buffer);
+    struct ANativeWindowBuffer *buffer);
 
 /** Create a new HWC ANativeWindow.
  *
@@ -44,8 +44,8 @@ typedef void (*HWCPresentCallback)(void *user_data, struct ANativeWindow *window
  *
  * \sa HWCNativeWindowDestroy
  */
-struct ANativeWindow *HWCNativeWindowCreate(unsigned int width, unsigned int height, unsigned int format,
-                                            HWCPresentCallback present, void *cbData);
+struct ANativeWindow *HWCNativeWindowCreate(unsigned int width, unsigned int height,
+	unsigned int format, HWCPresentCallback present, void *cbData);
 
 /** Destroy a HWC ANativeWindow.
  *
