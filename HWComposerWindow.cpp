@@ -15,8 +15,8 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "hwcomposer.h"
-#include "hwcomposer_window.h"
+#include "HWComposer.h"
+#include "HWComposerWindow.h"
 #include "NativeGralloc.h"
 
 extern "C" {

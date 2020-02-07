@@ -18,8 +18,8 @@ extern "C" {
 #include <sync/sync.h>
 }
 
-#include "nativewindowbase.h"
-#include "support.h"
+#include "NativeWindowBase.h"
+#include "Support.h"
 
 #ifdef DEBUG
 #define TRACE(fmt, ...)
