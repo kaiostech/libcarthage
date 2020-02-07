@@ -14,26 +14,26 @@
  * limitations under the License.
  */
 
-#if ANDROID_VERSION >= 29
-#   include "android_10/HWC2.h"
-#   include "android_10/ComposerHal.h"
-#elif ANDROID_VERSION >= 28
-#   include "android_9/HWC2.h"
-#   include "android_9/ComposerHal.h"
-#elif ANDROID_VERSION >= 26
-#   include "android_8/HWC2.h"
-#   include "android_8/ComposerHal.h"
-#endif
 #include <gui/Surface.h>
 #include <hardware/hardware.h>
 #include <hardware/hwcomposer.h>
 #include <hardware/power.h>
+#include <hwcomposer_window.h>
 
 #include "cutils/properties.h"
 #include "FramebufferSurface.h"
 #include "HWComposerSurface.h"
-#include "HWComposerWindow.h"
 #include "NativeGralloc.h"
+#if ANDROID_VERSION == 27
+    #include "oreo/HWC2.h"
+    #include "oreo/ComposerHal.h"
+#elif ANDROID_VERSION == 28
+    #include "pie/HWC2.h"
+    #include "pie/ComposerHal.h"
+#elif ANDROID_VERSION >= 29
+    #include "q/HWC2.h"
+    #include "q/ComposerHal.h"
+#endif
 
 #ifdef LOG_TAG
 #undef LOG_TAG

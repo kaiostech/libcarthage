@@ -17,27 +17,27 @@
 #define GONKDISPLAYP_H
 
 #include <gui/BufferQueue.h>
+#include <hwcomposer_window.h>
 
-#if ANDROID_VERSION >= 29
-#   include "android_10/HWC2.h"
-#   include "android_10/ComposerHal.h"
-#elif ANDROID_VERSION >= 28
-#   include "android_9/HWC2.h"
-#   include "android_9/ComposerHal.h"
-#elif ANDROID_VERSION >= 26
-#   include "android_8/HWC2.h"
-#   include "android_8/ComposerHal.h"
-#endif
 #include "DisplaySurface.h"
 #include "GonkDisplay.h"
 #include "hardware/hwcomposer.h"
 #include "hardware/power.h"
 #include "HWComposerSurface.h"
-#include "HWComposerWindow.h"
 #include "NativeFramebufferDevice.h"
 #include "NativeGralloc.h"
 #include "ui/Fence.h"
 #include "utils/RefBase.h"
+#if ANDROID_VERSION >= 29
+    #include "q/HWC2.h"
+    #include "q/ComposerHal.h"
+#elif ANDROID_VERSION >= 28
+    #include "pie/HWC2.h"
+    #include "pie/ComposerHal.h"
+#elif ANDROID_VERSION >= 26
+    #include "oreo/HWC2.h"
+    #include "oreo/ComposerHal.h"
+#endif
 
 // ----------------------------------------------------------------------------
 namespace android {

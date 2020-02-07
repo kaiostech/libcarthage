@@ -10,7 +10,7 @@ extern "C" {
 #include <cutils/native_handle.h>
 #include <hardware/gralloc.h>
 #if HAS_GRALLOC1_HEADER
-#   include <hardware/gralloc1.h>
+	#include <hardware/gralloc1.h>
 #endif
 
 #include "MozTypes.h"

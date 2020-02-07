@@ -11,7 +11,7 @@
 #include <stdio.h>
 #endif
 
-#include "Support.h"
+#include "support.h"
 #include "utils/Errors.h"
 
 #ifndef NUM_FRAMEBUFFER_SURFACE_BUFFERS

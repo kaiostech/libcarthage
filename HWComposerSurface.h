@@ -20,14 +20,17 @@
 #include <ui/GraphicBuffer.h>
 #include <ui/Fence.h>
 
-#if ANDROID_VERSION >= 29
-#   include "android_10/HWC2.h"
-#elif ANDROID_VERSION >= 28
-#   include "android_9/HWC2.h"
-#elif ANDROID_VERSION >= 26
-#   include "android_8/HWC2.h"
+#include "hwcomposer_window.h"
+#if ANDROID_VERSION == 27
+	#include "oreo/HWC2.h"
+#elif ANDROID_VERSION == 28
+	#include "pie/HWC2.h"
+#elif ANDROID_VERSION >= 29
+	#include "q/HWC2.h"
 #endif
-#include "HWComposerWindow.h"
+
+//namespace android {
+// ---------------------------------------------------------------------------
 
 class HWComposerSurface : public HWComposerNativeWindow
 {
@@ -44,5 +47,8 @@ class HWComposerSurface : public HWComposerNativeWindow
 
 		void set();	
 };
+
+// ---------------------------------------------------------------------------
+//}; // namespace android
 
 #endif // ANDROID_SF_HWCOMPOSER_H
