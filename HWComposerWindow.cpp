@@ -105,8 +105,21 @@ HWComposerNativeWindowBuffer::HWComposerNativeWindowBuffer(unsigned int width,
     fenceFd = -1;
     busy = 0;
     status = 0;
+    void *mappedAddress = nullptr;
 
     native_gralloc_allocate(width, height, format, usage, &handle, (uint32_t*)&stride);
+
+    if (!native_gralloc_lock(handle,
+                             GRALLOC_USAGE_SW_READ_NEVER |
+                             GRALLOC_USAGE_SW_WRITE_OFTEN |
+                             GRALLOC_USAGE_HW_FB,
+                             0, 0, width, height, &mappedAddress)) {
+        // Clean the graphic buffer.
+        memset(mappedAddress, 0, height * stride * 2);
+        native_gralloc_unlock(handle);
+    } else {
+        ALOGE("native_gralloc_lock fail!");
+    }
 
     TRACE("width=%d height=%d stride=%d format=0x%x usage=0x%x status=%s this=%p",
         width, height, stride, format, usage, strerror(-status), this);
