@@ -15,7 +15,7 @@
 #include <pthread.h>
 #include <vector>
 
-#include "nativewindowbase.h"
+#include "NativeWindowBase.h"
 
 class HWComposerNativeWindowBuffer : public BaseNativeWindowBuffer {
 friend class HWComposerNativeWindow;
@@ -84,4 +84,3 @@ private:
 };
 
 #endif
-// vim: noai:ts=4:sw=4:ss=4:expandtab

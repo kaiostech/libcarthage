@@ -17,8 +17,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #if HAS_GRALLOC1_HEADER
-    #include <GrallocUsageConversion.h>
-    #include <hardware/gralloc1.h>
+#   include <GrallocUsageConversion.h>
+#   include <hardware/gralloc1.h>
 #endif
 
 #include "NativeGralloc.h"
