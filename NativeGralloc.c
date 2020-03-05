@@ -115,7 +115,7 @@ void native_gralloc_initialize(int framebuffer)
                     fprintf(stderr, "failed to open the framebuffer module\n");
                     assert(NULL);
                 }
-            } else if ((gralloc_open(gralloc_hardware_module, 
+            } else if ((gralloc_open(gralloc_hardware_module,
                 &gralloc0_alloc) == 0) && gralloc0_alloc != NULL) {
                 // success
                 version = 0;

@@ -18,22 +18,12 @@
 
 #include <gui/BufferQueue.h>
 
-#if ANDROID_VERSION >= 29
-#   include "android_10/HWC2.h"
-#   include "android_10/ComposerHal.h"
-#elif ANDROID_VERSION >= 28
-#   include "android_9/HWC2.h"
-#   include "android_9/ComposerHal.h"
-#elif ANDROID_VERSION >= 26
-#   include "android_8/HWC2.h"
-#   include "android_8/ComposerHal.h"
-#endif
+#include "HWC2_stub.h"
+#include "ComposerHal_stub.h"
 #include "DisplaySurface.h"
 #include "GonkDisplay.h"
 #include "hardware/hwcomposer.h"
 #include "hardware/power.h"
-#include "HWComposerSurface.h"
-#include "HWComposerWindow.h"
 #include "NativeFramebufferDevice.h"
 #include "NativeGralloc.h"
 #include "ui/Fence.h"
@@ -78,7 +68,7 @@ public:
 
     virtual void UnlockScreen();
 
-    virtual android::sp<ANativeWindow> GetSurface() {return mSTClient;};
+    virtual android::sp<ANativeWindow> GetSurface() { return mSTClient; };
 
 private:
     void CreateFramebufferSurface(android::sp<ANativeWindow>& aNativeWindow,
@@ -111,6 +101,7 @@ private:
     bool                          mFBEnabled;
     bool                          mExtFBEnabled;
     android::Mutex                mPrimaryScreenLock;
+    HWC2::Display*                mHwcDisplay;
 };
 
 // ----------------------------------------------------------------------------

@@ -38,13 +38,8 @@ namespace android {
 // ---------------------------------------------------------------------------
 
 class IGraphicBufferProducer;
+class IGraphicBufferConsumer;
 class String8;
-
-#if ANDROID_VERSION >= 21
-typedef IGraphicBufferConsumer StreamConsumer;
-#else
-typedef BufferQueue StreamConsumer;
-#endif
 
 class DisplaySurface : public ConsumerBase {
 public:
@@ -97,7 +92,7 @@ public:
     buffer_handle_t lastHandle;
 
 protected:
-    DisplaySurface(const sp<StreamConsumer>& sc)
+    DisplaySurface(const sp<IGraphicBufferConsumer>& sc)
     #if ANDROID_VERSION >= 19
         : ConsumerBase(sc, true)
     #else

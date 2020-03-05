@@ -15,22 +15,23 @@
  ** limitations under the License.
  */
 
-#include <cutils/log.h>
 #include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <cutils/log.h>
 #include <EGL/egl.h>
 #include <gui/BufferItem.h>
 #include <gui/BufferQueue.h>
 #include <gui/Surface.h>
 #include <hardware/hardware.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <ui/GraphicBuffer.h>
 #include <ui/Rect.h>
 #include <utils/String8.h>
+#include <vndk/hardware_buffer.h>
 
 #include "FramebufferSurface.h"
-//#include "GraphicBufferAlloc.h"
+#include "ComposerHal_stub.h"
 
 #ifndef NUM_FRAMEBUFFER_SURFACE_BUFFERS
 #define NUM_FRAMEBUFFER_SURFACE_BUFFERS (3)
@@ -49,25 +50,30 @@ namespace android {
  * This implements the (main) framebuffer management. This class
  * was adapted from the version in SurfaceFlinger
  */
-FramebufferSurface::FramebufferSurface(int disp,
-    uint32_t width, uint32_t height, const sp<StreamConsumer>& sc)
-    : DisplaySurface(sc)
-    , mDisplayType(disp)
-    , mCurrentBufferSlot(-1)
-    , mCurrentBuffer(0)
+FramebufferSurface::FramebufferSurface(
+    uint32_t width, uint32_t height, uint32_t format,
+    const sp<IGraphicBufferConsumer>& consumer,
+    HWC2::Display *aHwcDisplay, HWC2::Layer *aLayer)
+    : DisplaySurface(consumer)
+    , mCurrentSlot(BufferQueue::INVALID_BUFFER_SLOT)
+    , mCurrentBuffer()
+    , mPrevFBAcquireFence(Fence::NO_FENCE)
+    , mHasPendingRelease(false)
+    , mPreviousBufferSlot(BufferQueue::INVALID_BUFFER_SLOT)
+    , mPreviousBuffer()
+    , hwcDisplay(aHwcDisplay)
+    , layer(aLayer)
+    , mLastPresentFence(Fence::NO_FENCE)
 {
-    ALOGD("Creating for display %d", mDisplayType);
     mName = "FramebufferSurface";
 
-    sp<IGraphicBufferConsumer> consumer = mConsumer;
-
-    consumer->setConsumerName(mName);
-    consumer->setConsumerUsageBits(GRALLOC_USAGE_HW_FB |
-                                   GRALLOC_USAGE_HW_RENDER |
-                                   GRALLOC_USAGE_HW_COMPOSER);
-    //consumer->setDefaultBufferFormat(format);
-    consumer->setDefaultBufferSize(width, height);
-    consumer->setMaxAcquiredBufferCount(NUM_FRAMEBUFFER_SURFACE_BUFFERS);
+    mConsumer->setConsumerName(mName);
+    mConsumer->setConsumerUsageBits(/*GRALLOC_USAGE_HW_FB |*/
+                                    GRALLOC_USAGE_HW_RENDER |
+                                    GRALLOC_USAGE_HW_COMPOSER);
+    mConsumer->setDefaultBufferFormat(format);
+    mConsumer->setDefaultBufferSize(width, height);
+    mConsumer->setMaxAcquiredBufferCount(NUM_FRAMEBUFFER_SURFACE_BUFFERS);
 }
 
 void FramebufferSurface::resizeBuffers(const uint32_t width,
@@ -103,7 +109,7 @@ status_t FramebufferSurface::advanceFrame()
     }
 
     lastHandle = buf->handle;
-	
+
 	return result;
 }
 
@@ -122,6 +128,11 @@ status_t FramebufferSurface::nextBuffer(sp<GraphicBuffer>& outBuffer,
         return err;
     }
 
+    const auto slot = item.mSlot;
+    const auto buffer = mSlots[item.mSlot].mGraphicBuffer;
+    const auto acquireFence = item.mFence;
+    presentLocked(slot, buffer, acquireFence);
+
     // If the BufferQueue has freed and reallocated a buffer in mCurrentSlot
     // then we may have acquired the slot we already own.  If we had released
     // our current buffer before we call acquireBuffer then that release call
@@ -130,29 +141,20 @@ status_t FramebufferSurface::nextBuffer(sp<GraphicBuffer>& outBuffer,
     // been overwritten with the new buffer all we have to do is skip the
     // releaseBuffer call and we should be in the same state we'd be in if we
     // had released the old buffer first.
-    if (mCurrentBufferSlot != BufferQueue::INVALID_BUFFER_SLOT &&
-        item.mSlot != mCurrentBufferSlot) {
-        // Release the previous buffer.
-
-        err = releaseBufferLocked(mCurrentBufferSlot, mCurrentBuffer,
-                EGL_NO_DISPLAY, EGL_NO_SYNC_KHR);
-
-        if (err != NO_ERROR && err != StreamConsumer::STALE_BUFFER_SLOT) {
-            ALOGE("error releasing buffer: %s (%d)", strerror(-err), err);
-            return err;
-        }
+    if (mCurrentSlot != BufferQueue::INVALID_BUFFER_SLOT && slot != mCurrentSlot) {
+        mHasPendingRelease = true;
+        mPreviousBufferSlot = mCurrentSlot;
+        mPreviousBuffer = mCurrentBuffer;
     }
-    mCurrentBufferSlot = item.mSlot;
-    mCurrentBuffer = mSlots[mCurrentBufferSlot].mGraphicBuffer;
-    outFence = item.mFence;
-    outBuffer = mCurrentBuffer;
+
+    mCurrentSlot = slot;
+    outBuffer = mCurrentBuffer = buffer;
+    outFence = acquireFence;
     return NO_ERROR;
 }
 
 // Overrides ConsumerBase::onFrameAvailable(), does not call base class impl.
-
-/*void FramebufferSurface::onFrameAvailable(const ::android::BufferItem &item) {
-
+void FramebufferSurface::onFrameAvailable(const ::android::BufferItem &item) {
     sp<GraphicBuffer> buf;
     sp<Fence> acquireFence;
     status_t err = nextBuffer(buf, acquireFence);
@@ -161,19 +163,67 @@ status_t FramebufferSurface::nextBuffer(sp<GraphicBuffer>& outBuffer,
                 strerror(-err), err);
         return;
     }
-    if (acquireFence.get() && acquireFence->isValid())
-        mPrevFBAcquireFence = new Fence(acquireFence->dup());
-    else
+
+    if (acquireFence.get() && acquireFence->isValid()) {
+        mPrevFBAcquireFence = acquireFence;
+    } else {
         mPrevFBAcquireFence = Fence::NO_FENCE;
+    }
 
     lastHandle = buf->handle;
-}*/
+}
+
+void FramebufferSurface::presentLocked(const int slot,
+                                 const sp<GraphicBuffer>& buffer,
+                                 const sp<Fence>& acquireFence)
+{
+    uint32_t numTypes = 0;
+    uint32_t numRequests = 0;
+    HWC2::Error error = HWC2::Error::None;
+
+    // TODO user HWC::Device path:
+    //layer->setCompositionType(HWC2::Composition::Device);
+    //layer->setBuffer(slot, buffer, acquireFence);
+    // this line is used to avoid unused variable layer warning.
+    (void)layer;
+
+    error = hwcDisplay->validate(&numTypes, &numRequests);
+    if (error != HWC2::Error::None && error != HWC2::Error::HasChanges) {
+        ALOGE("prepare: validate failed : %s (%d)",
+            to_string(error).c_str(), static_cast<int32_t>(error));
+        return;
+    }
+
+    if (numTypes || numRequests) {
+        ALOGE("prepare: validate required changes : %s (%d)",
+            to_string(error).c_str(), static_cast<int32_t>(error));
+        return;
+    }
+
+    error = hwcDisplay->acceptChanges();
+    if (error != HWC2::Error::None) {
+        ALOGE("prepare: acceptChanges failed: %s", to_string(error).c_str());
+        return;
+    }
+
+    ui::Dataspace dataspace = ui::Dataspace::UNKNOWN;
+    hwcDisplay->setClientTarget(slot, buffer, acquireFence, dataspace);
+
+    error = hwcDisplay->present(&mLastPresentFence);
+    if (error != HWC2::Error::None) {
+        ALOGE("present: failed : %s (%d)",
+            to_string(error).c_str(), static_cast<int32_t>(error));
+        return;
+    }
+
+    onFrameCommitted();
+}
 
 void FramebufferSurface::freeBufferLocked(int slotIndex)
 {
     ConsumerBase::freeBufferLocked(slotIndex);
-    if (slotIndex == mCurrentBufferSlot) {
-        mCurrentBufferSlot = BufferQueue::INVALID_BUFFER_SLOT;
+    if (slotIndex == mCurrentSlot) {
+        mCurrentSlot = BufferQueue::INVALID_BUFFER_SLOT;
     }
 }
 
@@ -182,8 +232,8 @@ status_t FramebufferSurface::setReleaseFenceFd(int fenceFd)
     status_t err = NO_ERROR;
     if (fenceFd >= 0) {
         sp<Fence> fence(new Fence(fenceFd));
-        if (mCurrentBufferSlot != BufferQueue::INVALID_BUFFER_SLOT) {
-            status_t err = addReleaseFence(mCurrentBufferSlot, 
+        if (mCurrentSlot != BufferQueue::INVALID_BUFFER_SLOT) {
+            status_t err = addReleaseFence(mCurrentSlot,
 			      mCurrentBuffer,  fence);
 
             ALOGE_IF(err, "setReleaseFenceFd: failed to add the fence: %s (%d)",
@@ -203,7 +253,11 @@ int FramebufferSurface::GetPrevDispAcquireFd()
 
 void FramebufferSurface::onFrameCommitted()
 {
-  // XXX This role is almost same to setReleaseFenceFd().
+    if (mHasPendingRelease) {
+        addReleaseFenceLocked(mPreviousBufferSlot, mPreviousBuffer, mLastPresentFence);
+        releaseBufferLocked(mPreviousBufferSlot, mPreviousBuffer);
+        mHasPendingRelease = false;
+    }
 }
 
 // ----------------------------------------------------------------------------

@@ -21,6 +21,7 @@
 #include <sys/types.h>
 
 #include "DisplaySurface.h"
+#include "HWC2_stub.h"
 
 // ---------------------------------------------------------------------------
 namespace android {
@@ -33,8 +34,10 @@ class String8;
 
 class FramebufferSurface : public DisplaySurface {
 public:
-    FramebufferSurface(int disp, uint32_t width, uint32_t height,
-        const sp<StreamConsumer>& sc);
+    FramebufferSurface(
+        uint32_t width, uint32_t height, uint32_t format,
+        const sp<IGraphicBufferConsumer>& consumer,
+        HWC2::Display *aHwcDisplay, HWC2::Layer *aLayer);
 
     // From DisplaySurface
     virtual status_t beginFrame(bool mustRecompose);
@@ -58,12 +61,8 @@ public:
 private:
     virtual ~FramebufferSurface() { }; // this class cannot be overloaded
 
-#if ANDROID_VERSION >= 26
-#elif ANDROID_VERSION >= 22
     virtual void onFrameAvailable(const BufferItem &item);
-#else
-    virtual void onFrameAvailable();
-#endif
+
     virtual void freeBufferLocked(int slotIndex);
 
     // nextBuffer waits for and then latches the next buffer from the
@@ -71,19 +70,31 @@ private:
     // BufferQueue.  The new buffer is returned in the 'buffer' argument.
     status_t nextBuffer(sp<GraphicBuffer>& outBuffer, sp<Fence>& outFence);
 
-    // mDisplayType must match one of the HWC display types
-    int mDisplayType;
+	void presentLocked(
+        const int slot,
+        const sp<GraphicBuffer>& buffer,
+        const sp<Fence>& acquireFence);
 
     // mCurrentBufferIndex is the slot index of the current buffer or
     // INVALID_BUFFER_SLOT to indicate that either there is no current buffer
     // or the buffer is not associated with a slot.
-    int mCurrentBufferSlot;
+    int mCurrentSlot;
 
     // mCurrentBuffer is the current buffer or NULL to indicate that there is
     // no current buffer.
     sp<GraphicBuffer> mCurrentBuffer;
 
     sp<Fence> mPrevFBAcquireFence;
+
+    // Previous buffer to release after getting an updated retire fence
+    bool mHasPendingRelease;
+    int mPreviousBufferSlot;
+    sp<GraphicBuffer> mPreviousBuffer;
+
+    HWC2::Display* hwcDisplay;
+    HWC2::Layer* layer;
+
+    sp<Fence> mLastPresentFence;
 };
 
 // ---------------------------------------------------------------------------

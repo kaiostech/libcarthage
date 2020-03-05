@@ -11,11 +11,8 @@ LOCAL_SRC_FILES:= \
     FramebufferSurface.cpp \
     GonkDisplayP.cpp \
     GrallocUsageConversion.cpp \
-    HWComposerSurface.cpp \
-    HWComposerWindow.cpp \
     NativeFramebufferDevice.cpp \
     NativeGralloc.c \
-    NativeWindowBase.cpp
 
 LOCAL_SHARED_LIBRARIES := \
     android.frameworks.vr.composer@1.0 \

@@ -14,6 +14,7 @@
  */
 
 #include <gui/Surface.h>
+#include <gui/IProducerListener.h>
 #include <hardware/hardware.h>
 #include <hardware/hwcomposer.h>
 #include <hardware/power.h>
@@ -147,6 +148,7 @@ GonkDisplayP::GonkDisplayP()
     , mEnabledCallback(nullptr)
     , mFBEnabled(true) // Initial value should sync with hal::GetScreenEnabled()
     , mExtFBEnabled(true) // Initial value should sync with hal::GetExtScreenEnabled()
+    , mHwcDisplay(nullptr)
 {
 #if ANDROID_VERSION >= 28 /* Android P and later */
     std::string serviceName = "default";
@@ -168,6 +170,7 @@ GonkDisplayP::GonkDisplayP()
     assert(hwcDisplay);
 
     hwcDisplay->setPowerMode(HWC2::PowerMode::On);
+    mHwcDisplay = hwcDisplay;
 
     std::shared_ptr<const HWC2::Display::Config> config;
     config = getActiveConfig(hwcDisplay, 0);
@@ -203,7 +206,7 @@ GonkDisplayP::GonkDisplayP()
                              config->getWidth(),
                              config->getHeight(),
                              dispData.mSurfaceformat,
-                             hwcDisplay, 
+                             hwcDisplay,
                              mlayer);
 
     hwcDisplay->createLayer(&mlayerBootAnim);
@@ -219,9 +222,17 @@ GonkDisplayP::GonkDisplayP()
                              config->getWidth(),
                              config->getHeight(),
                              dispData.mSurfaceformat,
-                             hwcDisplay, 
+                             hwcDisplay,
                              mlayerBootAnim);
 
+    {
+        // mBootAnimSTClient is used by CPU directly via GonkDisplayP's
+        // dequeueBuffer() / queueBuffer(). We connect it here for use
+        // later or it will be failed to queue buffers.
+        Surface* surface = static_cast<Surface*>(mBootAnimSTClient.get());
+        static sp<IProducerListener> listener = new DummyProducerListener();
+        surface->connect(NATIVE_WINDOW_API_CPU, listener);
+    }
 }
 
 GonkDisplayP::~GonkDisplayP()
@@ -241,12 +252,8 @@ GonkDisplayP::CreateFramebufferSurface(sp<ANativeWindow>& aNativeWindow,
     sp<IGraphicBufferConsumer> consumer;
     BufferQueue::createBufferQueue(&producer, &consumer);
 
-    aDisplaySurface = new FramebufferSurface(0, aWidth, aHeight, consumer);
-
-    HWComposerSurface *nativeWindow = new HWComposerSurface(aWidth, aHeight, format,
-        display, layer);
- 	
-    aNativeWindow = static_cast<ANativeWindow *>(nativeWindow);
+    aDisplaySurface = new FramebufferSurface(aWidth, aHeight, format, consumer, display, layer);
+    aNativeWindow = new android::Surface(producer, true);
 }
 
 void
@@ -421,13 +428,7 @@ GonkDisplayP::DequeueBuffer(DisplayType aDisplayType)
     int fenceFd = -1;
     nativeWindow->dequeueBuffer(nativeWindow.get(), &buf, &fenceFd);
     sp<Fence> fence(new Fence(fenceFd));
-#if ANDROID_VERSION == 17
-    fence->waitForever(1000, "GonkDisplay::DequeueBuffer");
-    // 1000 is what Android uses. It is a warning timeout in ms.
-    // This timeout was removed in ANDROID_VERSION 18.
-#else
     fence->waitForever("GonkDisplay::DequeueBuffer");
-#endif
     return buf;
 }
 
@@ -499,6 +500,10 @@ GonkDisplayP::NotifyBootAnimationStopped()
 {
     if (mBootAnimSTClient.get()) {
         ALOGI("[%s] NotifyBootAnimationStopped \n",__func__);
+        if (mlayerBootAnim) {
+            mHwcDisplay->destroyLayer(mlayerBootAnim);
+            mlayerBootAnim = nullptr;
+        }
         mBootAnimSTClient = nullptr;
         mBootAnimDispSurface = nullptr;
     }
