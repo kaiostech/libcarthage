@@ -30,6 +30,8 @@
 #include <utils/String8.h>
 #include <vndk/hardware_buffer.h>
 
+#include "GonkDisplayWorkThread.h"
+
 #include "FramebufferSurface.h"
 #include "ComposerHal_stub.h"
 
@@ -154,23 +156,25 @@ status_t FramebufferSurface::nextBuffer(sp<GraphicBuffer>& outBuffer,
 }
 
 // Overrides ConsumerBase::onFrameAvailable(), does not call base class impl.
-void FramebufferSurface::onFrameAvailable(const ::android::BufferItem &item) {
-    sp<GraphicBuffer> buf;
-    sp<Fence> acquireFence;
-    status_t err = nextBuffer(buf, acquireFence);
-    if (err != NO_ERROR) {
-        ALOGE("error latching nnext FramebufferSurface buffer: %s (%d)",
-                strerror(-err), err);
-        return;
-    }
+void FramebufferSurface::onFrameAvailable(const BufferItem &item) {
+    carthage::GonkDisplayWorkThread::Get()->Post([=] {
+        sp<GraphicBuffer> buf;
+        sp<Fence> acquireFence;
+        status_t err = nextBuffer(buf, acquireFence);
+        if (err != NO_ERROR) {
+            ALOGE("error latching nnext FramebufferSurface buffer: %s (%d)",
+                    strerror(-err), err);
+            return;
+        }
 
-    if (acquireFence.get() && acquireFence->isValid()) {
-        mPrevFBAcquireFence = acquireFence;
-    } else {
-        mPrevFBAcquireFence = Fence::NO_FENCE;
-    }
+        if (acquireFence.get() && acquireFence->isValid()) {
+            mPrevFBAcquireFence = acquireFence;
+        } else {
+            mPrevFBAcquireFence = Fence::NO_FENCE;
+        }
 
-    lastHandle = buf->handle;
+        lastHandle = buf->handle;
+    });
 }
 
 void FramebufferSurface::presentLocked(const int slot,
