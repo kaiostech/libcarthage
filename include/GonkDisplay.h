@@ -48,9 +48,7 @@ class GonkDisplay {
 public:
     struct NativeData {
         android::sp<ANativeWindow> mNativeWindow;
-    #if ANDROID_VERSION >= 17
         android::sp<DisplaySurface> mDisplaySurface;
-    #endif
         float mXdpi;
         bool mComposer2DSupported;
         // True if platform is capable of notifying the system when a vsync
@@ -120,7 +118,6 @@ public:
 
     virtual android::sp<ANativeWindow> GetSurface() = 0;
 
-#if ANDROID_VERSION >= 26
     typedef void (*GonkDisplayVsyncCBFun)
             (int display, int64_t timestamp);
     virtual void registerVsyncCallBack(GonkDisplayVsyncCBFun func)
@@ -143,14 +140,11 @@ public:
     {
         return pInvalidateCBFun;
     }
-#endif
 
 protected:
     DisplayNativeData mDispNativeData[NUM_DISPLAY_TYPES];
-#if ANDROID_VERSION >= 26
     GonkDisplayVsyncCBFun pVsyncCBFun = NULL;
     GonkDisplayInvalidateCBFun pInvalidateCBFun = NULL;
-#endif
 };
 
 extern "C" MOZ_EXPORT __attribute__ ((weak))

@@ -10,7 +10,7 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES:= \
     WorkThread.cpp \
     FramebufferSurface.cpp \
-    GonkDisplayP.cpp \
+    GonkDisplay.cpp \
     GrallocUsageConversion.cpp \
     NativeFramebufferDevice.cpp \
     NativeGralloc.c \

@@ -1,7 +1,6 @@
 # libcarthage on Gonk
 
-The goal of this project is to provide a display surface and blink or gecko 
-can render the html on it.
+The goal of this project is to provide a display surface for Gecko or another consumer that can render on it.
 
 # Building
 

@@ -13,6 +13,10 @@
  * limitations under the License.
  */
 
+#if ANDROID_VERSION < 29
+#error "Only ANDROID_VERSION >= 29 devices are supported"
+#endif
+
 #include <gui/Surface.h>
 #include <gui/IProducerListener.h>
 #include <hardware/hardware.h>
@@ -52,9 +56,6 @@ class HWComposerCallback : public HWC2::ComposerCallback
 
         void onHotplugReceived(int32_t sequenceId, hwc2_display_t display,
             HWC2::Connection connection
-        #if ANDROID_VERSION < 28 /* Android O only */
-            , bool primaryDisplay
-        #endif
             ) override;
 
         void onRefreshReceived(int32_t sequenceId, hwc2_display_t display) override;
@@ -83,11 +84,7 @@ HWComposerCallback::onVsyncReceived(int32_t sequenceId, hwc2_display_t display,
 
 void
 HWComposerCallback::onHotplugReceived(int32_t sequenceId, hwc2_display_t display,
-    HWC2::Connection connection
-#if ANDROID_VERSION < 28 /* Android O only */
-    , bool primaryDisplay
-#endif
-    )
+    HWC2::Connection connection)
 {
     {
         std::lock_guard<std::mutex> lock(hotplugMutex);
@@ -150,13 +147,9 @@ GonkDisplayP::GonkDisplayP()
     , mExtFBEnabled(true) // Initial value should sync with hal::GetExtScreenEnabled()
     , mHwcDisplay(nullptr)
 {
-#if ANDROID_VERSION >= 28 /* Android P and later */
     std::string serviceName = "default";
     mHwc = std::make_unique<HWC2::Device>(
         std::make_unique<Hwc2::impl::Composer>(serviceName));
-#else
-    mHwc = std::make_unique<HWC2::Device>(false);
-#endif
     assert(mHwc);
     mHwc->registerCallback(new HWComposerCallback(mHwc.get()), 0);
 
