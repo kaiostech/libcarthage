@@ -70,7 +70,10 @@ FramebufferSurface::FramebufferSurface(
     mName = "FramebufferSurface";
 
     mConsumer->setConsumerName(mName);
-    mConsumer->setConsumerUsageBits(/*GRALLOC_USAGE_HW_FB |*/
+    mConsumer->setConsumerUsageBits(
+#if ANDROID_EMULATOR
+                                    GRALLOC_USAGE_HW_FB |
+#endif
                                     GRALLOC_USAGE_HW_RENDER |
                                     GRALLOC_USAGE_HW_COMPOSER);
     mConsumer->setDefaultBufferFormat(format);

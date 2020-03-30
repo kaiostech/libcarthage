@@ -192,7 +192,7 @@ GonkDisplayP::GonkDisplayP()
     mlayer->setVisibleRegion(Region(r));
 
     ALOGI("created native window\n");
-    native_gralloc_initialize(0);
+    native_gralloc_initialize(1);
 
     CreateFramebufferSurface(mSTClient,
                              mDispSurface,

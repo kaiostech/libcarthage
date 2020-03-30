@@ -82,7 +82,7 @@ void native_gralloc_deinitialize(void);
 void native_gralloc_initialize(int framebuffer)
 {
     if (version == -1) {
-        if (hw_get_module(GRALLOC_HARDWARE_MODULE_ID, 
+        if (hw_get_module(GRALLOC_HARDWARE_MODULE_ID,
             (const struct hw_module_t **)&gralloc_hardware_module) == 0) {
         #if HAS_GRALLOC1_HEADER
             if ((gralloc1_open(gralloc_hardware_module, &gralloc1_device) == 0)
@@ -101,7 +101,8 @@ void native_gralloc_initialize(int framebuffer)
                         &gralloc0_alloc) == 0) && gralloc0_alloc != NULL) {
                         // success
                         version = 0;
-                        ALOGI("gralloc_open success");
+                        ALOGI("gralloc_open success. l:%d", __LINE__);
+                        gralloc0_module = reinterpret_cast<gralloc_module_t *>(gralloc_hardware_module);
                         atexit(native_gralloc_deinitialize);
                     } else {
                         ALOGI("failed to open the gralloc 0 module");
@@ -119,6 +120,7 @@ void native_gralloc_initialize(int framebuffer)
                 &gralloc0_alloc) == 0) && gralloc0_alloc != NULL) {
                 // success
                 version = 0;
+                gralloc0_module = reinterpret_cast<gralloc_module_t *>(gralloc_hardware_module);
                 ALOGI("gralloc_open . l:%d", __LINE__);
                 atexit(native_gralloc_deinitialize);
             } else {
