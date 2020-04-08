@@ -160,6 +160,7 @@ status_t FramebufferSurface::nextBuffer(sp<GraphicBuffer>& outBuffer,
 
 // Overrides ConsumerBase::onFrameAvailable(), does not call base class impl.
 void FramebufferSurface::onFrameAvailable(const BufferItem &item) {
+    (void)item;
     carthage::GonkDisplayWorkThread::Get()->Post([=] {
         sp<GraphicBuffer> buf;
         sp<Fence> acquireFence;
@@ -214,7 +215,7 @@ void FramebufferSurface::presentLocked(const int slot,
     }
 
     ui::Dataspace dataspace = ui::Dataspace::UNKNOWN;
-    hwcDisplay->setClientTarget(slot, buffer, acquireFence, dataspace);
+    (void)hwcDisplay->setClientTarget(slot, buffer, acquireFence, dataspace);
 
     error = hwcDisplay->present(&mLastPresentFence);
     if (error != HWC2::Error::None) {

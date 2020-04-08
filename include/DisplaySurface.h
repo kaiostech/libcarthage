@@ -93,11 +93,7 @@ public:
 
 protected:
     DisplaySurface(const sp<IGraphicBufferConsumer>& sc)
-    #if ANDROID_VERSION >= 19
         : ConsumerBase(sc, true)
-    #else
-        : ConsumerBase(sc)
-    #endif
         , lastHandle(0)
     { }
     virtual ~DisplaySurface() {}

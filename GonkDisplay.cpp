@@ -75,6 +75,7 @@ HWComposerCallback::onVsyncReceived(int32_t sequenceId, hwc2_display_t display,
 {
     //ALOGI("onVsyncReceived(%d, %" PRIu64 ", %" PRId64 ")",
     //        sequenceId, display,timestamp);
+    (void)sequenceId;
 
     GonkDisplayVsyncCBFun func = GetGonkDisplayP()->getVsyncCallBack();
     if (func) {
@@ -162,7 +163,7 @@ GonkDisplayP::GonkDisplayP()
     hotplugMutex.unlock();
     assert(hwcDisplay);
 
-    hwcDisplay->setPowerMode(HWC2::PowerMode::On);
+    (void)hwcDisplay->setPowerMode(HWC2::PowerMode::On);
     mHwcDisplay = hwcDisplay;
 
     std::shared_ptr<const HWC2::Display::Config> config;
@@ -181,15 +182,15 @@ GonkDisplayP::GonkDisplayP()
         /*TODO: need to discuss with vendor to check this format issue.*/
         dispData.mSurfaceformat = HAL_PIXEL_FORMAT_RGB_565;
     }
-    hwcDisplay->createLayer(&mlayer);
+    (void)hwcDisplay->createLayer(&mlayer);
 
     Rect r = {0, 0, config->getWidth(), config->getHeight()};
-    mlayer->setCompositionType(HWC2::Composition::Client);
-    mlayer->setBlendMode(HWC2::BlendMode::None);
-    mlayer->setSourceCrop(FloatRect(0.0f, 0.0f,
+    (void)mlayer->setCompositionType(HWC2::Composition::Client);
+    (void)mlayer->setBlendMode(HWC2::BlendMode::None);
+    (void)mlayer->setSourceCrop(FloatRect(0.0f, 0.0f,
         config->getWidth(), config->getHeight()));
-    mlayer->setDisplayFrame(r);
-    mlayer->setVisibleRegion(Region(r));
+    (void)mlayer->setDisplayFrame(r);
+    (void)mlayer->setVisibleRegion(Region(r));
 
     ALOGI("created native window\n");
     native_gralloc_initialize(1);
@@ -202,13 +203,13 @@ GonkDisplayP::GonkDisplayP()
                              hwcDisplay,
                              mlayer);
 
-    hwcDisplay->createLayer(&mlayerBootAnim);
-	mlayerBootAnim->setCompositionType(HWC2::Composition::Client);
-	mlayerBootAnim->setBlendMode(HWC2::BlendMode::None);
-	mlayerBootAnim->setSourceCrop(FloatRect(
+    (void)hwcDisplay->createLayer(&mlayerBootAnim);
+    (void)mlayerBootAnim->setCompositionType(HWC2::Composition::Client);
+    (void)mlayerBootAnim->setBlendMode(HWC2::BlendMode::None);
+    (void)mlayerBootAnim->setSourceCrop(FloatRect(
         0.0f, 0.0f, config->getWidth(), config->getHeight()));
-	mlayerBootAnim->setDisplayFrame(r);
-	mlayerBootAnim->setVisibleRegion(Region(r));
+    (void)mlayerBootAnim->setDisplayFrame(r);
+    (void)mlayerBootAnim->setVisibleRegion(Region(r));
 
     CreateFramebufferSurface(mBootAnimSTClient,
                              mBootAnimDispSurface,
@@ -254,6 +255,9 @@ GonkDisplayP::CreateVirtualDisplaySurface(IGraphicBufferProducer* aSink,
     sp<ANativeWindow>& aNativeWindow, sp<DisplaySurface>& aDisplaySurface)
 {
 /* TODO: implement VirtualDisplay*/
+    (void)aSink;
+    (void)aNativeWindow;
+    (void)aDisplaySurface;
 
 /* FIXME: bug 4036, fix the build error in libdisplay
 #if ANDROID_VERSION >= 19
@@ -494,7 +498,7 @@ GonkDisplayP::NotifyBootAnimationStopped()
     if (mBootAnimSTClient.get()) {
         ALOGI("[%s] NotifyBootAnimationStopped \n",__func__);
         if (mlayerBootAnim) {
-            mHwcDisplay->destroyLayer(mlayerBootAnim);
+            (void)mHwcDisplay->destroyLayer(mlayerBootAnim);
             mlayerBootAnim = nullptr;
         }
         mBootAnimSTClient = nullptr;

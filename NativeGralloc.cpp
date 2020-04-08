@@ -10,16 +10,14 @@
 #include <assert.h>
 #include <dlfcn.h>
 #include <errno.h>
+#include <GrallocUsageConversion.h>
 #include <hardware/fb.h>
 #include <hardware/gralloc.h>
+#include <hardware/gralloc1.h>
 #include <hardware/hardware.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#if HAS_GRALLOC1_HEADER
-#   include <GrallocUsageConversion.h>
-#   include <hardware/gralloc1.h>
-#endif
 
 #include "NativeGralloc.h"
 
@@ -30,7 +28,6 @@ static framebuffer_device_t *framebuffer_device = NULL;
 static gralloc_module_t *gralloc0_module;
 static alloc_device_t *gralloc0_alloc;
 
-#if HAS_GRALLOC1_HEADER
 static gralloc1_device_t *gralloc1_device = NULL;
 static int gralloc1_release_implies_delete = 0;
 static GRALLOC1_PFN_CREATE_DESCRIPTOR gralloc1_create_descriptor = NULL;
@@ -56,20 +53,14 @@ static GRALLOC1_PFN_SET_LAYER_COUNT gralloc1_set_layer_count = NULL;
 static GRALLOC1_PFN_GET_LAYER_COUNT gralloc1_get_layer_count = NULL;
 
 static void gralloc1_init(void);
-#endif
 
 // simple macros to make sure the code is only compiled if we actually have the
 // header to be able to compile it.
 // we could also use Gralloc1On0Adapter, but that would mean we need to import
 // headers and cpp files from android 8, which may not compile against older
 // android trees.
-#if HAS_GRALLOC1_HEADER
 #define GRALLOC0(code) (version == 0) { code }
 #define GRALLOC1(code) (version == 1) { code }
-#else
-#define GRALLOC0(code) (version == 0) { code }
-#define GRALLOC1(code) (0) {}
-#endif
 
 #define NO_GRALLOC {                                                         \
     fprintf(stderr, "%s:%d: called gralloc method without gralloc loaded\n", \
@@ -84,7 +75,6 @@ void native_gralloc_initialize(int framebuffer)
     if (version == -1) {
         if (hw_get_module(GRALLOC_HARDWARE_MODULE_ID,
             (const struct hw_module_t **)&gralloc_hardware_module) == 0) {
-        #if HAS_GRALLOC1_HEADER
             if ((gralloc1_open(gralloc_hardware_module, &gralloc1_device) == 0)
                 && (gralloc1_device != NULL)) {
                 // success
@@ -92,8 +82,7 @@ void native_gralloc_initialize(int framebuffer)
                 gralloc1_init();
                 version = 1;
                 atexit(native_gralloc_deinitialize);
-            } else
-        #endif
+            } else {
             if (framebuffer) {
                 if (framebuffer_open(gralloc_hardware_module,
                     &framebuffer_device) == 0) {
@@ -101,19 +90,15 @@ void native_gralloc_initialize(int framebuffer)
                         &gralloc0_alloc) == 0) && gralloc0_alloc != NULL) {
                         // success
                         version = 0;
-                        ALOGI("gralloc_open success. l:%d", __LINE__);
+                        ALOGI("gralloc_open success.l:%d", __LINE__);
                         gralloc0_module = reinterpret_cast<gralloc_module_t *>(gralloc_hardware_module);
                         atexit(native_gralloc_deinitialize);
                     } else {
                         ALOGI("failed to open the gralloc 0 module");
-                        fprintf(stderr, "failed to open the gralloc 0 module "
-                            "(framebuffer was requested therefore defaulted "
-                            "to version 0)\n");
                         assert(NULL);
                     }
                 } else {
                     ALOGI("failed to open the framebuffer module");
-                    fprintf(stderr, "failed to open the framebuffer module\n");
                     assert(NULL);
                 }
             } else if ((gralloc_open(gralloc_hardware_module,
@@ -126,19 +111,15 @@ void native_gralloc_initialize(int framebuffer)
             } else {
                 // fail
                 framebuffer_device = NULL;
-            #if HAS_GRALLOC1_HEADER
                 gralloc1_device = NULL;
-            #endif
                 version = -2;
                 ALOGI("failed to open gralloc module with both version 0 and 1"
                     " methods. l:%d", __LINE__);
-                fprintf(stderr, "failed to open gralloc module with both version "
-                    "0 and 1 methods\n");
                 native_gralloc_deinitialize();
                 assert(NULL);
             }
+            }
         } else {
-            fprintf(stderr, "failed to find/load gralloc module\n");
             ALOGI("failed to find/load gralloc module. l:%d",__LINE__);
             assert(NULL);
         }
@@ -157,16 +138,13 @@ void native_gralloc_deinitialize(void)
     if (gralloc0_alloc) gralloc_close(gralloc0_alloc);
     gralloc0_alloc = NULL;
 
-#if HAS_GRALLOC1_HEADER
     if (gralloc1_device) gralloc1_close(gralloc1_device);
     gralloc1_device = NULL;
-#endif
 
     if (gralloc_hardware_module) dlclose(gralloc_hardware_module->dso);
     gralloc_hardware_module = NULL;
 }
 
-#if HAS_GRALLOC1_HEADER
 static void gralloc1_init(void)
 {
     uint32_t count = 0;
@@ -231,7 +209,6 @@ static void gralloc1_init(void)
     gralloc1_get_layer_count = (GRALLOC1_PFN_GET_LAYER_COUNT)gralloc1_device->getFunction(
         gralloc1_device, GRALLOC1_FUNCTION_GET_LAYER_COUNT);
 }
-#endif
 
 int native_gralloc_release(buffer_handle_t handle, int was_allocated)
 {

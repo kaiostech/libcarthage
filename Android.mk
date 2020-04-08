@@ -1,8 +1,3 @@
-# define ANDROID_VERSION MAJOR, MINOR
-
-ANDROID_VERSION_MAJOR := $(word 1, $(subst ., , $(PLATFORM_VERSION)))
-ANDROID_VERSION_MINOR := $(word 2, $(subst ., , $(PLATFORM_VERSION)))
-
 LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
@@ -43,35 +38,7 @@ LOCAL_SHARED_LIBRARIES := \
     libui \
     libutils
 
-ifeq ($(PLATFORM_SDK_VERSION),27)
-    LOCAL_SRC_FILES += \
-        HWC/android_8/ComposerHal.cpp \
-        HWC/android_8/HWC2.cpp
-
-    LOCAL_SHARED_LIBRARIES += \
-        libvulkan \
-        libnativewindow
-
-    LOCAL_EXPORT_SHARED_LIBRARY_HEADERS := \
-        android.hardware.graphics.allocator@2.0 \
-        android.hardware.graphics.composer@2.1 \
-        libhidlbase \
-        libhidltransport \
-        libhwbinder
-
-else ifeq ($(PLATFORM_SDK_VERSION),28)
-    LOCAL_SRC_FILES += \
-        HWC/android_9/ComposerHal.cpp \
-        HWC/android_9/HWC2.cpp
-
-    LOCAL_SHARED_LIBRARIES += \
-        android.hardware.graphics.composer@2.2
-
-    LOCAL_HEADER_LIBRARIES := \
-        android.hardware.graphics.composer@2.1-command-buffer \
-        android.hardware.graphics.composer@2.2-command-buffer
-
-else ifeq ($(PLATFORM_SDK_VERSION),29)
+ifeq ($(PLATFORM_SDK_VERSION),29)
     LOCAL_SRC_FILES += \
         HWC/android_10/ComposerHal.cpp \
         HWC/android_10/HWC2.cpp
@@ -101,7 +68,7 @@ else ifeq ($(PLATFORM_SDK_VERSION),29)
         libhwbinder
 else
 
-    $(error "supports only android version larger than 8(android O)")
+    $(error "supports only android version larger than 29(android 10)")
 endif
 
 LOCAL_MODULE_TAGS := tests
@@ -115,17 +82,13 @@ LOCAL_C_INCLUDES += \
     frameworks/native/libs/ui/include \
 
 LOCAL_CFLAGS := \
-    -DANDROID_VERSION_MAJOR=$(ANDROID_VERSION_MAJOR) \
-    -DANDROID_VERSION_MINOR=$(ANDROID_VERSION_MINOR) \
     -DANDROID_VERSION=$(PLATFORM_SDK_VERSION)
 
 LOCAL_CFLAGS += \
-    -Wno-unused-parameter -DGL_GLEXT_PROTOTYPES -UNDEBUG -DQCOM_BSP=1 -DQTI_BSP=1 \
-    -Wno-unused-variable -Wno-unused-parameter -Wno-unused-function -Wno-unused-result \
-    -DHAS_GRALLOC1_HEADER=1
+    -DGL_GLEXT_PROTOTYPES -UNDEBUG
 
 # For emulator
-ifeq ($(TARGET_PRODUCT), aosp_arm)
+ifeq ($(strip $(TARGET_PRODUCT)),$(filter $(TARGET_PRODUCT),aosp_arm aosp_x86_64))
     LOCAL_CFLAGS += -DANDROID_EMULATOR
 endif
 
