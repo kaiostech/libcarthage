@@ -1,5 +1,5 @@
 /*
- **
+ ** Copyright (C) 2020 KAI OS TECHNOLOGIES (HONG KONG) LIMITED. All rights reserved.
  ** Copyright 2012 The Android Open Source Project
  **
  ** Licensed under the Apache License Version 2.0(the "License");

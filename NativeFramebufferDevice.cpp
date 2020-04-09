@@ -1,4 +1,5 @@
-/* Copyright (C) 2015 Acadine Technologies. All rights reserved.
+/* Copyright (C) 2020 KAI OS TECHNOLOGIES (HONG KONG) LIMITED. All rights reserved.
+ * Copyright (C) 2015 Acadine Technologies. All rights reserved.
  * Copyright (C) 2008 The Android Open Source Project
  * Copyright (c) 2010-2014 The Linux Foundation. All rights reserved.
  *

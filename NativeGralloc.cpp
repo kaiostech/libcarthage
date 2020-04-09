@@ -1,10 +1,16 @@
-/* (c) 2019 KAI OS TECHNOLOGIES (HONG KONG) LIMITED All rights reserved. This
- * file or any portion thereof may not be reproduced or used in any manner
- * whatsoever without the express written permission of KAI OS TECHNOLOGIES
- * (HONG KONG) LIMITED. KaiOS is the trademark of KAI OS TECHNOLOGIES (HONG
- * KONG) LIMITED or its affiliate company and may be registered in some
- * jurisdictions. All other trademarks are the property of their respective
- * owners.
+/* Copyright (C) 2020 KAI OS TECHNOLOGIES (HONG KONG) LIMITED. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <assert.h>
@@ -54,19 +60,7 @@ static GRALLOC1_PFN_GET_LAYER_COUNT gralloc1_get_layer_count = NULL;
 
 static void gralloc1_init(void);
 
-// simple macros to make sure the code is only compiled if we actually have the
-// header to be able to compile it.
-// we could also use Gralloc1On0Adapter, but that would mean we need to import
-// headers and cpp files from android 8, which may not compile against older
-// android trees.
-#define GRALLOC0(code) (version == 0) { code }
-#define GRALLOC1(code) (version == 1) { code }
 
-#define NO_GRALLOC {                                                         \
-    fprintf(stderr, "%s:%d: called gralloc method without gralloc loaded\n", \
-        __func__, __LINE__);                                                 \
-    assert(NULL);                                                            \
-}
 
 void native_gralloc_deinitialize(void);
 
@@ -328,39 +322,3 @@ int native_gralloc_unlock(buffer_handle_t handle)
     return ret;
 }
 
-// Legacy fbdev methods. these are not available in gralloc1 thus use old API.
-int native_gralloc_fbdev_format(void)
-{
-    assert(framebuffer_device);
-    return framebuffer_device->format;
-}
-
-int native_gralloc_fbdev_framebuffer_count(void)
-{
-    assert(framebuffer_device);
-    return framebuffer_device->numFramebuffers;
-}
-
-int native_gralloc_fbdev_setSwapInterval(int interval)
-{
-    assert(framebuffer_device);
-    return framebuffer_device->setSwapInterval(framebuffer_device, interval);
-}
-
-int native_gralloc_fbdev_post(buffer_handle_t handle)
-{
-    assert(framebuffer_device);
-    return framebuffer_device->post(framebuffer_device, handle);
-}
-
-int native_gralloc_fbdev_width(void)
-{
-    assert(framebuffer_device);
-    return framebuffer_device->width;
-}
-
-int native_gralloc_fbdev_height(void)
-{
-    assert(framebuffer_device);
-    return framebuffer_device->height;
-}
