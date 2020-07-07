@@ -25,6 +25,7 @@
 #include "GonkDisplay.h"
 #include "hardware/hwcomposer.h"
 #include "hardware/power.h"
+#include <android/hardware/power/1.0/IPower.h>
 #include "NativeFramebufferDevice.h"
 #include "NativeGralloc.h"
 #include "ui/Fence.h"
@@ -33,6 +34,8 @@
 // ----------------------------------------------------------------------------
 namespace android {
 // ----------------------------------------------------------------------------
+
+using ::android::hardware::power::V1_0::IPower;
 
 class MOZ_EXPORT GonkDisplayP : public GonkDisplay {
 public:
@@ -97,6 +100,7 @@ private:
     sp<ANativeWindow>             mExtSTClient;
     sp<DisplaySurface>            mBootAnimDispSurface;
     sp<ANativeWindow>             mBootAnimSTClient;
+    sp<IPower>                    mPower;
     hwc_display_contents_1_t*     mList;
     OnEnabledCallbackType         mEnabledCallback;
     bool                          mFBEnabled;
