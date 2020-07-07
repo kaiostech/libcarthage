@@ -146,7 +146,7 @@ GonkDisplayP::GonkDisplayP()
     , mList(nullptr)
     , mEnabledCallback(nullptr)
     , mFBEnabled(true) // Initial value should sync with hal::GetScreenEnabled()
-    , mExtFBEnabled(true) // Initial value should sync with hal::GetExtScreenEnabled()
+    , mExtFBEnabled(false) // Initial value should sync with hal::GetExtScreenEnabled()
     , mHwcDisplay(nullptr)
 {
     std::string serviceName = "default";
@@ -195,6 +195,11 @@ GonkDisplayP::GonkDisplayP()
 
     ALOGI("created native window\n");
     native_gralloc_initialize(1);
+
+    mPower = IPower::getService();
+    if (mPower == nullptr) {
+        ALOGE("Can't find IPower service...");
+    }
 
     CreateFramebufferSurface(mSTClient,
                              mDispSurface,
@@ -274,7 +279,7 @@ GonkDisplayP::SetEnabled(bool enabled)
 {
     if (enabled) {
         autosuspend_disable();
-        mPowerModule->setInteractive(mPowerModule, true);
+        mPower->setInteractive(true);
     }
 
     if (!enabled && mEnabledCallback) {
@@ -303,7 +308,7 @@ GonkDisplayP::SetEnabled(bool enabled)
 
     if (!enabled && !mExtFBEnabled) {
         autosuspend_enable();
-        mPowerModule->setInteractive(mPowerModule, false);
+        mPower->setInteractive(false);
     }
 }
 
