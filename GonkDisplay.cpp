@@ -145,6 +145,7 @@ GonkDisplayP::GonkDisplayP()
     , mPowerModule(nullptr)
     , mList(nullptr)
     , mEnabledCallback(nullptr)
+    , mEnableHWCPower(false)
     , mFBEnabled(true) // Initial value should sync with hal::GetScreenEnabled()
     , mExtFBEnabled(false) // Initial value should sync with hal::GetExtScreenEnabled()
     , mHwcDisplay(nullptr)
@@ -170,14 +171,20 @@ GonkDisplayP::GonkDisplayP()
     std::shared_ptr<const HWC2::Display::Config> config;
     config = getActiveConfig(hwcDisplay, 0);
 
-    ALOGI("width: %i height: %i,dpi: %f\n", config->getWidth(), config->getHeight(),
-        config->getDpiX());
+    char lcd_density_str[PROPERTY_VALUE_MAX] = "0";
+    property_get("ro.sf.lcd_density", lcd_density_str, "0");
+    int lcd_dnsity = atoi(lcd_density_str);
+
+    mEnableHWCPower = property_get_bool("persis.hwc.powermode", false);
+
+    ALOGI("width: %i, height: %i, dpi: %f, lcd: %d\n", config->getWidth(), config->getHeight(),
+        config->getDpiX(), lcd_dnsity);
 
     DisplayNativeData &dispData = mDispNativeData[(uint32_t)DisplayType::DISPLAY_PRIMARY];
     if (config->getWidth() > 0) {
         dispData.mWidth = config->getWidth();
         dispData.mHeight = config->getHeight();
-        dispData.mXdpi = config->getDpiX();
+        dispData.mXdpi = (lcd_dnsity > 0) ? lcd_dnsity : config->getDpiX();
         /* The emulator actually reports RGBA_8888, but EGL doesn't return
         * any matching configuration. We force RGBX here to fix it. */
         /*TODO: need to discuss with vendor to check this format issue.*/
@@ -286,7 +293,7 @@ GonkDisplayP::SetEnabled(bool enabled)
         mEnabledCallback(enabled);
     }
 
-    if (mHwc) {
+    if (mHwc && mEnableHWCPower) {
         HWC2::PowerMode mode = (enabled ? HWC2::PowerMode::On : HWC2::PowerMode::Off);
         HWC2::Display *hwcDisplay = mHwc->getDisplayById(HWC_DISPLAY_PRIMARY);
 

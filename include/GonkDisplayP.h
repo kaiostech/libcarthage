@@ -103,6 +103,7 @@ private:
     sp<IPower>                    mPower;
     hwc_display_contents_1_t*     mList;
     OnEnabledCallbackType         mEnabledCallback;
+    bool                          mEnableHWCPower;
     bool                          mFBEnabled;
     bool                          mExtFBEnabled;
     android::Mutex                mPrimaryScreenLock;
