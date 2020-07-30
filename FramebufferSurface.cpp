@@ -188,6 +188,7 @@ void FramebufferSurface::presentLocked(const int slot,
     uint32_t numTypes = 0;
     uint32_t numRequests = 0;
     HWC2::Error error = HWC2::Error::None;
+    ui::Dataspace dataspace = ui::Dataspace::UNKNOWN;
 
     // TODO user HWC::Device path:
     //layer->setCompositionType(HWC2::Composition::Device);
@@ -199,32 +200,31 @@ void FramebufferSurface::presentLocked(const int slot,
     if (error != HWC2::Error::None && error != HWC2::Error::HasChanges) {
         ALOGE("prepare: validate failed : %s (%d)",
             to_string(error).c_str(), static_cast<int32_t>(error));
-        return;
+        goto FrameCommitted;
     }
 
     if (numTypes || numRequests) {
         ALOGE("prepare: validate required changes : %s (%d)",
             to_string(error).c_str(), static_cast<int32_t>(error));
-        return;
+        goto FrameCommitted;
     }
 
     error = hwcDisplay->acceptChanges();
     if (error != HWC2::Error::None) {
         ALOGE("prepare: acceptChanges failed: %s", to_string(error).c_str());
-        return;
+        goto FrameCommitted;
     }
 
-    ui::Dataspace dataspace = ui::Dataspace::UNKNOWN;
     (void)hwcDisplay->setClientTarget(slot, buffer, acquireFence, dataspace);
 
     error = hwcDisplay->present(&mLastPresentFence);
     if (error != HWC2::Error::None) {
         ALOGE("present: failed : %s (%d)",
             to_string(error).c_str(), static_cast<int32_t>(error));
-        return;
     }
 
-    onFrameCommitted();
+    FrameCommitted:
+        onFrameCommitted();
 }
 
 void FramebufferSurface::freeBufferLocked(int slotIndex)
