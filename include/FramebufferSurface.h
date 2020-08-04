@@ -23,6 +23,7 @@
 
 #include "DisplaySurface.h"
 #include "HWC2_stub.h"
+#include "NativeFramebufferDevice.h"
 
 // ---------------------------------------------------------------------------
 namespace android {
@@ -38,7 +39,8 @@ public:
     FramebufferSurface(
         uint32_t width, uint32_t height, uint32_t format,
         const sp<IGraphicBufferConsumer>& consumer,
-        HWC2::Display *aHwcDisplay, HWC2::Layer *aLayer);
+        HWC2::Display *aHwcDisplay, HWC2::Layer *aLayer,
+        NativeFramebufferDevice *ExtFBDevice);
 
     // From DisplaySurface
     virtual status_t beginFrame(bool mustRecompose);
@@ -94,6 +96,7 @@ private:
 
     HWC2::Display* hwcDisplay;
     HWC2::Layer* layer;
+    NativeFramebufferDevice* mExtFBDevice;
 
     sp<Fence> mLastPresentFence;
 };

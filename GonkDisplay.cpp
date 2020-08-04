@@ -147,7 +147,7 @@ GonkDisplayP::GonkDisplayP()
     , mEnabledCallback(nullptr)
     , mEnableHWCPower(false)
     , mFBEnabled(true) // Initial value should sync with hal::GetScreenEnabled()
-    , mExtFBEnabled(false) // Initial value should sync with hal::GetExtScreenEnabled()
+    , mExtFBEnabled(true) // Initial value should sync with hal::GetExtScreenEnabled()
     , mHwcDisplay(nullptr)
 {
     std::string serviceName = "default";
@@ -199,6 +199,7 @@ GonkDisplayP::GonkDisplayP()
         config->getWidth(), config->getHeight()));
     (void)mlayer->setDisplayFrame(r);
     (void)mlayer->setVisibleRegion(Region(r));
+    (void)mPowerModule;
 
     ALOGI("created native window\n");
     native_gralloc_initialize(1);
@@ -214,7 +215,8 @@ GonkDisplayP::GonkDisplayP()
                              config->getHeight(),
                              dispData.mSurfaceformat,
                              hwcDisplay,
-                             mlayer);
+                             mlayer,
+                             nullptr);
 
     (void)hwcDisplay->createLayer(&mlayerBootAnim);
     (void)mlayerBootAnim->setCompositionType(HWC2::Composition::Client);
@@ -230,7 +232,8 @@ GonkDisplayP::GonkDisplayP()
                              config->getHeight(),
                              dispData.mSurfaceformat,
                              hwcDisplay,
-                             mlayerBootAnim);
+                             mlayerBootAnim,
+                             nullptr);
 
     {
         // mBootAnimSTClient is used by CPU directly via GonkDisplayP's
@@ -239,6 +242,55 @@ GonkDisplayP::GonkDisplayP()
         Surface* surface = static_cast<Surface*>(mBootAnimSTClient.get());
         static sp<IProducerListener> listener = new DummyProducerListener();
         surface->connect(NATIVE_WINDOW_API_CPU, listener);
+    }
+
+
+    uint32_t usage = GRALLOC_USAGE_HW_FB | GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_HW_COMPOSER;
+
+    // Set this prop to turn on native framebuffer support for fb1,
+    // such as external screen of flip phone.
+    // ro.h5.display.fb1_backlightdev=__full_backlight_device_path__
+    //
+    // ex: Octans will set this prop in device/t2m/octans/octans.mk
+    DisplayNativeData &extDispData = mDispNativeData[DISPLAY_EXTERNAL];
+    mExtFBDevice = NativeFramebufferDevice::Create();
+
+    if (mExtFBDevice) {
+        if (mExtFBDevice->Open()) {
+            extDispData.mWidth = mExtFBDevice->mWidth;
+            extDispData.mHeight = mExtFBDevice->mHeight;
+            extDispData.mSurfaceformat = mExtFBDevice->mSurfaceformat;
+            extDispData.mXdpi = mExtFBDevice->mXdpi;
+
+            mExtFBDevice->EnableScreen(true);
+            CreateFramebufferSurface(mExtSTClient,
+                                     mExtDispSurface,
+                                     extDispData.mWidth,
+                                     extDispData.mHeight,
+                                     extDispData.mSurfaceformat,
+                                     nullptr,
+                                     nullptr,
+                                     mExtFBDevice);
+            mExtSTClient->perform(mExtSTClient.get(), NATIVE_WINDOW_SET_BUFFER_COUNT, 2);
+            mExtSTClient->perform(mExtSTClient.get(), NATIVE_WINDOW_SET_USAGE, usage);
+
+            {
+                // mExtSTClient is used by CPU directly via GonkDisplayP's
+                // dequeueBuffer() / queueBuffer(). We connect it here for use
+                // later or it will be failed to queue buffers.
+                Surface* surface = static_cast<Surface*>(mExtSTClient.get());
+                static sp<IProducerListener> listener = new DummyProducerListener();
+                surface->connect(NATIVE_WINDOW_API_CPU, listener);
+            }
+        } else {
+            delete mExtFBDevice;
+            mExtFBDevice = nullptr;
+        }
+    }
+
+    if (!mExtFBDevice) {
+        // Set mExtFBEnabled to false if no support externl screen.
+        mExtFBEnabled = false;
     }
 }
 
@@ -253,13 +305,13 @@ void
 GonkDisplayP::CreateFramebufferSurface(sp<ANativeWindow>& aNativeWindow,
     sp<DisplaySurface>& aDisplaySurface,
     uint32_t aWidth, uint32_t aHeight, unsigned int format,
-    HWC2::Display *display, HWC2::Layer *layer)
+    HWC2::Display *display, HWC2::Layer *layer, NativeFramebufferDevice *ExtFBDevice)
 {
     sp<IGraphicBufferProducer> producer;
     sp<IGraphicBufferConsumer> consumer;
     BufferQueue::createBufferQueue(&producer, &consumer);
 
-    aDisplaySurface = new FramebufferSurface(aWidth, aHeight, format, consumer, display, layer);
+    aDisplaySurface = new FramebufferSurface(aWidth, aHeight, format, consumer, display, layer, ExtFBDevice);
     aNativeWindow = new android::Surface(producer, true);
 }
 
@@ -339,15 +391,17 @@ GonkDisplayP::SetExtEnabled(bool enabled)
 
     if (enabled) {
         autosuspend_disable();
-        mPowerModule->setInteractive(mPowerModule, true);
+        mPower->setInteractive(true);
     }
 
-    mExtFBDevice->EnableScreen(enabled);
+    if (mExtFBDevice) {
+      mExtFBDevice->EnableScreen(enabled);
+    }
     mExtFBEnabled = enabled;
 
     if (!enabled && !mFBEnabled) {
         autosuspend_enable();
-        mPowerModule->setInteractive(mPowerModule, false);
+        mPower->setInteractive(false);
     }
 }
 
@@ -514,8 +568,13 @@ GonkDisplayP::NotifyBootAnimationStopped()
             (void)mHwcDisplay->destroyLayer(mlayerBootAnim);
             mlayerBootAnim = nullptr;
         }
+
         mBootAnimSTClient = nullptr;
         mBootAnimDispSurface = nullptr;
+    }
+    if (mExtSTClient.get()) {
+        Surface* surface = static_cast<Surface*>(mExtSTClient.get());
+        surface->disconnect(NATIVE_WINDOW_API_CPU);
     }
 }
 

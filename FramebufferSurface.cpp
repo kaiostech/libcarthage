@@ -55,7 +55,8 @@ namespace android {
 FramebufferSurface::FramebufferSurface(
     uint32_t width, uint32_t height, uint32_t format,
     const sp<IGraphicBufferConsumer>& consumer,
-    HWC2::Display *aHwcDisplay, HWC2::Layer *aLayer)
+    HWC2::Display *aHwcDisplay, HWC2::Layer *aLayer,
+    NativeFramebufferDevice *ExtFBDevice)
     : DisplaySurface(consumer)
     , mCurrentSlot(BufferQueue::INVALID_BUFFER_SLOT)
     , mCurrentBuffer()
@@ -65,6 +66,7 @@ FramebufferSurface::FramebufferSurface(
     , mPreviousBuffer()
     , hwcDisplay(aHwcDisplay)
     , layer(aLayer)
+    , mExtFBDevice(ExtFBDevice)
     , mLastPresentFence(Fence::NO_FENCE)
 {
     mName = "FramebufferSurface";
@@ -195,32 +197,40 @@ void FramebufferSurface::presentLocked(const int slot,
     //layer->setBuffer(slot, buffer, acquireFence);
     // this line is used to avoid unused variable layer warning.
     (void)layer;
+    if (mExtFBDevice) {
+        if (acquireFence.get() && acquireFence->isValid()) {
+            android::sp<Fence> fenceObj = new Fence(acquireFence->dup());
+            fenceObj->waitForever("FramebufferSurface::Post");
+        }
+        mExtFBDevice->Post(buffer->handle);
+    } else {
+        error = hwcDisplay->validate(&numTypes, &numRequests);
+        if (error != HWC2::Error::None && error != HWC2::Error::HasChanges) {
+            ALOGE("prepare: validate failed : %s (%d)",
+                to_string(error).c_str(), static_cast<int32_t>(error));
+            goto FrameCommitted;
+        }
 
-    error = hwcDisplay->validate(&numTypes, &numRequests);
-    if (error != HWC2::Error::None && error != HWC2::Error::HasChanges) {
-        ALOGE("prepare: validate failed : %s (%d)",
-            to_string(error).c_str(), static_cast<int32_t>(error));
-        goto FrameCommitted;
-    }
+        if (numTypes || numRequests) {
+            ALOGE("prepare: validate required changes : %s (%d)",
+                to_string(error).c_str(), static_cast<int32_t>(error));
+            goto FrameCommitted;
+        }
 
-    if (numTypes || numRequests) {
-        ALOGE("prepare: validate required changes : %s (%d)",
-            to_string(error).c_str(), static_cast<int32_t>(error));
-        goto FrameCommitted;
-    }
+        error = hwcDisplay->acceptChanges();
+        if (error != HWC2::Error::None) {
+            ALOGE("prepare: acceptChanges failed: %s", to_string(error).c_str());
+            goto FrameCommitted;
+        }
 
-    error = hwcDisplay->acceptChanges();
-    if (error != HWC2::Error::None) {
-        ALOGE("prepare: acceptChanges failed: %s", to_string(error).c_str());
-        goto FrameCommitted;
-    }
+        (void)hwcDisplay->setClientTarget(slot, buffer, acquireFence, dataspace);
 
-    (void)hwcDisplay->setClientTarget(slot, buffer, acquireFence, dataspace);
+        error = hwcDisplay->present(&mLastPresentFence);
+        if (error != HWC2::Error::None) {
+            ALOGE("present: failed : %s (%d)",
+                to_string(error).c_str(), static_cast<int32_t>(error));
+        }
 
-    error = hwcDisplay->present(&mLastPresentFence);
-    if (error != HWC2::Error::None) {
-        ALOGE("present: failed : %s (%d)",
-            to_string(error).c_str(), static_cast<int32_t>(error));
     }
 
     FrameCommitted:
@@ -243,7 +253,6 @@ status_t FramebufferSurface::setReleaseFenceFd(int fenceFd)
         if (mCurrentSlot != BufferQueue::INVALID_BUFFER_SLOT) {
             status_t err = addReleaseFence(mCurrentSlot,
 			      mCurrentBuffer,  fence);
-
             ALOGE_IF(err, "setReleaseFenceFd: failed to add the fence: %s (%d)",
                     strerror(-err), err);
         }

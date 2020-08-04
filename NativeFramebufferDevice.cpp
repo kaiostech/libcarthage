@@ -22,6 +22,7 @@
 
 #include "cutils/properties.h"
 #include "NativeFramebufferDevice.h"
+#include "NativeGralloc.h"
 #include "utils/Log.h"
 
 #ifdef BUILD_ARM_NEON
@@ -64,7 +65,7 @@ inline void Transform8888To565(uint8_t* outbuf, const uint8_t* inbuf, int PixelN
 NativeFramebufferDevice::NativeFramebufferDevice(int aExtFbFd)
     : mWidth(320)
     , mHeight(480)
-    , mSurfaceformat(HAL_PIXEL_FORMAT_RGBA_8888)
+    , mSurfaceformat(HAL_PIXEL_FORMAT_RGB_565)
     , mXdpi(DEFAULT_XDPI)
     , mIsEnabled(false)
     , mFd(aExtFbFd)
@@ -86,6 +87,7 @@ NativeFramebufferDevice::Create()
 
     // Check for dev node path of external screen's framebuffer;
     if (property_get("ro.kaios.display.ext_fb_dev", propValue, NULL) <= 0) {
+        ALOGE("Failed to get ro.kaios.display.ext_fb_dev.");
         return nullptr;
     }
 
@@ -187,7 +189,9 @@ NativeFramebufferDevice::Open()
             "bpp          = %d\n"
             "r            = %2u:%u\n"
             "g            = %2u:%u\n"
-            "b            = %2u:%u\n",
+            "b            = %2u:%u\n"
+            "xoffset      = %2u\n"
+            "yoffset      = %2u\n",
             mFd,
             mFInfo.id,
             mVInfo.xres,
@@ -197,21 +201,19 @@ NativeFramebufferDevice::Open()
             mVInfo.bits_per_pixel,
             mVInfo.red.offset, mVInfo.red.length,
             mVInfo.green.offset, mVInfo.green.length,
-            mVInfo.blue.offset, mVInfo.blue.length
+            mVInfo.blue.offset, mVInfo.blue.length,
+            mVInfo.xoffset,mVInfo.yoffset
     );
 
     ALOGI(  "width        = %d mm (%f dpi)\n"
-            "height       = %d mm (%f dpi)\n",
+            "height       = %d mm (%f dpi)\n"
+            "line_length  = %d\n"
+            "Format       = %d\n",
             mVInfo.width,  xdpi,
-            mVInfo.height, ydpi
+            mVInfo.height, ydpi,
+            mFInfo.line_length,
+            mFBSurfaceformat
     );
-
-    const hw_module_t *module = nullptr;
-    if (hw_get_module(GRALLOC_HARDWARE_MODULE_ID, &module)) {
-        ALOGE("Could not get gralloc module");
-        Close();
-        return false;
-    }
 
     mMemLength = roundUpToPageSize(mFInfo.line_length * mVInfo.yres_virtual);
     mMappedAddr = mmap(0, mMemLength, PROT_READ | PROT_WRITE, MAP_SHARED, mFd, 0);
@@ -221,9 +223,6 @@ NativeFramebufferDevice::Open()
         Close();
         return false;
     }
-
-    mGrmodule = const_cast<gralloc_module_t *>
-        (reinterpret_cast<const gralloc_module_t *>(module));
 
     mWidth = mVInfo.xres;
     mHeight = mVInfo.yres;
@@ -247,7 +246,7 @@ NativeFramebufferDevice::Post(buffer_handle_t buf)
     }
 
     void *vaddr;
-    if (mGrmodule->lock(mGrmodule, buf,
+    if (native_gralloc_lock(buf,
                         GRALLOC_USAGE_SW_READ_RARELY,
                         0, 0, mVInfo.xres, mVInfo.yres, &vaddr)) {
         ALOGE("Failed to lock buffer_handle_t");
@@ -262,7 +261,7 @@ NativeFramebufferDevice::Post(buffer_handle_t buf)
         memcpy(mMappedAddr, vaddr, mFInfo.line_length * mVInfo.yres);
     }
 
-    mGrmodule->unlock(mGrmodule, buf);
+    native_gralloc_unlock(buf);
 
     mVInfo.activate = FB_ACTIVATE_VBL;
 
