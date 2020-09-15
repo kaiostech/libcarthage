@@ -175,7 +175,7 @@ GonkDisplayP::GonkDisplayP()
     property_get("ro.sf.lcd_density", lcd_density_str, "0");
     int lcd_dnsity = atoi(lcd_density_str);
 
-    mEnableHWCPower = property_get_bool("persis.hwc.powermode", false);
+    mEnableHWCPower = property_get_bool("persist.hwc.powermode", false);
 
     ALOGI("width: %i, height: %i, dpi: %f, lcd: %d\n", config->getWidth(), config->getHeight(),
         config->getDpiX(), lcd_dnsity);
