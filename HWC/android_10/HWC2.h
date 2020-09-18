@@ -104,7 +104,7 @@ public:
             android::ui::PixelFormat* format, Display** outDisplay);
     void destroyDisplay(hwc2_display_t displayId);
 
-    void onHotplug(hwc2_display_t displayId, Connection connection);
+    MOZ_EXPORT void onHotplug(hwc2_display_t displayId, Connection connection);
 
     // Other Device methods
 
@@ -457,7 +457,6 @@ private:
 
 } // namespace HWC2
 
-#if 1 // TODO, FIXME: for the issue of sharedlibrary linking from gecko
 #ifdef HAVE_VISIBILITY_ATTRIBUTE
     #define MOZ_EXPORT       __attribute__((visibility("default")))
 #elif defined(__SUNPRO_C) || defined(__SUNPRO_CC)
@@ -474,6 +473,5 @@ void hwc2_registerCallback(HWC2::Device *p, HWC2::ComposerCallback* callback, in
 
 extern "C" MOZ_EXPORT __attribute__ ((weak))
 HWC2::Error hwc2_setVsyncEnabled(HWC2::Display *p, HWC2::Vsync enabled);
-#endif
 
 #endif // ANDROID_SF_HWC2_H

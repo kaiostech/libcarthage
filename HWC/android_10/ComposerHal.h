@@ -23,7 +23,6 @@
 #include <utility>
 #include <vector>
 
-#include <android/frameworks/vr/composer/1.0/IVrComposerClient.h>
 #include <android/hardware/graphics/common/1.1/types.h>
 #include <android/hardware/graphics/composer/2.3/IComposer.h>
 #include <android/hardware/graphics/composer/2.3/IComposerClient.h>
@@ -38,7 +37,6 @@ namespace android {
 
 namespace Hwc2 {
 
-using frameworks::vr::composer::V1_0::IVrComposerClient;
 
 namespace types = hardware::graphics::common;
 
@@ -423,16 +421,7 @@ private:
         explicit CommandWriter(uint32_t initialMaxSize);
         ~CommandWriter() override;
 
-        void setLayerInfo(uint32_t type, uint32_t appId);
-        void setClientTargetMetadata(
-                const IVrComposerClient::BufferMetadata& metadata);
-        void setLayerBufferMetadata(
-                const IVrComposerClient::BufferMetadata& metadata);
-
-    private:
-        void writeBufferMetadata(
-                const IVrComposerClient::BufferMetadata& metadata);
-    };
+     };
 
     // Many public functions above simply write a command into the command
     // queue to batch the calls.  validateDisplay and presentDisplay will call

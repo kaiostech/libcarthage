@@ -11,7 +11,6 @@ LOCAL_SRC_FILES:= \
     NativeGralloc.cpp \
 
 LOCAL_SHARED_LIBRARIES := \
-    android.frameworks.vr.composer@1.0 \
     android.hardware.graphics.allocator@2.0 \
     android.hardware.graphics.composer@2.1 \
     android.hardware.configstore@1.0 \
@@ -44,7 +43,6 @@ ifeq ($(PLATFORM_SDK_VERSION),29)
         HWC/android_10/HWC2.cpp
 
     LOCAL_SHARED_LIBRARIES += \
-        android.frameworks.vr.composer@1.0 \
         android.hardware.graphics.allocator@3.0 \
         android.hardware.graphics.composer@2.1 \
         android.hardware.graphics.composer@2.2 \
