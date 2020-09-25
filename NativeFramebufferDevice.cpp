@@ -263,11 +263,11 @@ NativeFramebufferDevice::Post(buffer_handle_t buf)
 
     native_gralloc_unlock(buf);
 
+    // The following logics are not required for single FB case.
+    // For buffer number >= 2, need to set activate and yoffset
+    // into VSCREENINFO for buffer switch.
     mVInfo.activate = FB_ACTIVATE_VBL;
 
-    // Please refer to KaiOS - Bug 307: FB driver needs fsync operation for
-    // triggering the buffer update.
-    fsync(mFd);
     if(0 > ioctl(mFd, FBIOPUT_VSCREENINFO, &mVInfo)) {
       ALOGE("FBIOPUT_VSCREENINFO failed : error on refresh");
     }
